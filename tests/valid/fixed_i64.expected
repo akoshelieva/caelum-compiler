@@ -1,0 +1,8 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: fixed
+    type: ☽
+    name: DISTANCE
+    initializer:
+      IntegerLiteral @ 1:20
+        value: 9000000000

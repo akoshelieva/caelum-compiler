@@ -1,0 +1,4 @@
+calm ☁︎ ready = light.
+when ready == light ⟨
+flow ☼ value = 1.
+⟩
