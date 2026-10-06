@@ -1,0 +1,9 @@
+fixed ☼ LIMIT = 100.
+calm ☁︎ active = light.
+flow ☼ score = 15.
+
+when active == light ⟨
+    score = 20.
+⟩ otherwise ⟨
+    score = 0.
+⟩
