@@ -143,6 +143,8 @@ class Parser:
             if self.peek().kind==K.LPAREN and isinstance(value,IdentifierNode):
                 args=self.parse_arguments();value=CallNode(value.line,value.column,value.name,args);continue
             if self.peek().kind==K.MEMBER:
+                if isinstance(value,MemberNode) and value.args is not None:
+                    self.eat(K.DOT,"'.'")  # A member call terminates its access chain.
                 tok=self.eat(K.MEMBER);member=self.eat(K.IDENTIFIER,'member name')
                 args=self.parse_arguments() if self.peek().kind==K.LPAREN else None
                 value=MemberNode(tok.line,tok.column,value,member.text,args)
@@ -164,7 +166,8 @@ class Parser:
         if t.kind==K.STRING:self.position+=1;return StringNode(t.line,t.column,t.text)
         if t.kind in (K.IDENTIFIER,K.TYPE_I32,K.TYPE_I64,K.TYPE_BOOL):
             self.position+=1
-            if self.peek().kind==K.BLOCK_OPEN and t.kind==K.IDENTIFIER:
+            if (self.peek().kind==K.BLOCK_OPEN and t.kind==K.IDENTIFIER
+                and self.peek(1).kind==K.IDENTIFIER and self.peek(2).kind==K.ASSIGN):
                 self.position+=1;fields=[]
                 if self.peek().kind!=K.BLOCK_CLOSE:
                     fields.append(self.parse_field_initializer())
