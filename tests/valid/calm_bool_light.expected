@@ -1,0 +1,8 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: calm
+    type: ☁︎
+    name: active
+    initializer:
+      BooleanLiteral @ 1:17
+        value: true

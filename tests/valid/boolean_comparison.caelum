@@ -1,0 +1,4 @@
+calm ☁︎ visible = light.
+when visible != dark ⟨
+flow ☼ count = 1.
+⟩

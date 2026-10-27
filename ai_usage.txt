@@ -1,0 +1,27 @@
+AI Usage
+Link:https://chatgpt.com/share/6ac527bd-2294-83ed-89bf-0b289b682ec4
+AI tools were used during Stage 1 development.
+
+AI was used for:
+- discussing the design of the Caelum programming language;
+- choosing keywords and syntax;
+- planning the project structure;
+- drafting parts of the recursive-descent parser;
+- designing the AST hierarchy;
+- reviewing the implementation against the assignment requirements;
+- generating ideas for positive and negative tests.
+
+Example prompts:
+- "Допоможи спроєктувати структуру Stage 1 compiler project..."
+- "На основі лексера і граматики Caelum реалізуй рекурсивний парсер..."
+- "Перевір реалізацію Caelum Stage 1 згідно з усіма вимогами завдання..."
+
+Parts used with modifications:
+- parser structure;
+- AST node structure;
+- test cases;
+- README structure.
+
+All generated code was reviewed and adjusted manually to match the Caelum grammar and assignment requirements.
+
+

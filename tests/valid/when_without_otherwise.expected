@@ -1,0 +1,27 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: calm
+    type: ☁︎
+    name: ready
+    initializer:
+      BooleanLiteral @ 1:16
+        value: true
+  If @ 2:1
+    condition:
+      Comparison @ 2:12
+        operator: ==
+        left:
+          Identifier @ 2:6
+            name: ready
+        right:
+          BooleanLiteral @ 2:15
+            value: true
+    then:
+      Declaration @ 3:1
+        kind: flow
+        type: ☼
+        name: value
+        initializer:
+          IntegerLiteral @ 3:16
+            value: 1
+    else: none

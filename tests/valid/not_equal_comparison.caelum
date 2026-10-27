@@ -1,0 +1,4 @@
+flow ☼ score = 15.
+when score != 0 ⟨
+score = 20.
+⟩

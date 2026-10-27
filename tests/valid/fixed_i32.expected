@@ -1,0 +1,8 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: fixed
+    type: ☼
+    name: LIMIT
+    initializer:
+      IntegerLiteral @ 1:17
+        value: 100

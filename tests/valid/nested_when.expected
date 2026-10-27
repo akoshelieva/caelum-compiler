@@ -1,0 +1,37 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: flow
+    type: ☼
+    name: score
+    initializer:
+      IntegerLiteral @ 1:16
+        value: 1
+  If @ 2:1
+    condition:
+      Comparison @ 2:12
+        operator: !=
+        left:
+          Identifier @ 2:6
+            name: score
+        right:
+          IntegerLiteral @ 2:15
+            value: 0
+    then:
+      If @ 3:1
+        condition:
+          Comparison @ 3:12
+            operator: ==
+            left:
+              Identifier @ 3:6
+                name: score
+            right:
+              IntegerLiteral @ 3:15
+                value: 1
+        then:
+          Assignment @ 4:1
+            name: score
+            value:
+              IntegerLiteral @ 4:9
+                value: 2
+        else: none
+    else: none

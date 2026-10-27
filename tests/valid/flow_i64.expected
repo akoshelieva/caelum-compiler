@@ -1,0 +1,8 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: flow
+    type: ☽
+    name: distance
+    initializer:
+      IntegerLiteral @ 1:19
+        value: 8000000000

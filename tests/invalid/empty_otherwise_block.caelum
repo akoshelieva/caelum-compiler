@@ -1,0 +1,5 @@
+flow ☼ score = 1.
+when score == 1 ⟨
+score = 2.
+⟩ otherwise ⟨
+⟩
