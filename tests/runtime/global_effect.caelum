@@ -1,0 +1,6 @@
+flow ☼ ticks = 0.
+astro Star ⟨ calm ☼ id.
+ spark observe() -> ☼ ⟨ ticks = ticks + 1. rise id. ⟩
+⟩
+calm Star s = Star⟨id = 2⟩.
+recordCoordinates(s ~ observe(),ticks).

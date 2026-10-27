@@ -1,37 +1,197 @@
-(* Caelum Stage 1 grammar. Whitespace between tokens is ignored. *)
+(*
+   CAELUM — Stage 2 EBNF (implementation specification)
+   Source of truth: original Stage 1 grammar and the approved Stage 2 design.
+   EBNF notation: comma = sequence; | = alternative; [ ] = optional;
+                  { } = repetition; ( ) = grouping; quoted text = terminal.
+   EBNF comments here are documentation; Caelum source comments are NOT added.
 
-program          = { statement } ;
+   CRITICAL STAGE 1 COMPATIBILITY:
+   - Existing statement terminator '.', nonempty blocks '⟨ ... ⟩', types,
+     keywords, case-sensitive Latin identifiers, old AST shapes/positions,
+     and negative literal diagnostics remain intact.
+   - The boolean type has TWO accepted spellings:
+       '☁'  = U+2601 (plain CLOUD), NEWLY ACCEPTED to fix Stage 1 feedback.
+       '☁︎' = U+2601 U+FE0E (CLOUD + VS15), EXISTING spelling.
+     Both resolve to the same semantic type; canonical AST type name '☁︎'.
+     U+FE0F (emoji presentation selector) is NOT an accepted third spelling.
+   - Spaces around '~' are REQUIRED (see lexical rules below).
+*)
 
-statement        = declaration
-                 | assignment
-                 | if_statement ;
+(* ========================= SYNTAX =============================== *)
 
-declaration      = declaration_kind, type_name, identifier, "=", expression, "." ;
-declaration_kind = "fixed" | "calm" | "flow" ;
-type_name        = "☼" | "☽" | "☁︎" ;
+program                 = { top_level_item } ;
 
-assignment       = identifier, "=", expression, "." ;
+top_level_item          = statement
+                        | function_declaration
+                        | astro_declaration ;
 
-if_statement     = "when", expression, block, [ "otherwise", block ] ;
-block            = "⟨", statement, { statement }, "⟩" ;
+(* A 'rise' statement is parsed on the top level but is a semantic error
+   outside of a function or member function. *)
+statement               = declaration
+                        | assignment
+                        | when_statement
+                        | rise_statement
+                        | call_statement ;
 
-expression       = comparison ;
-comparison       = primary, [ comparison_operator, primary ] ;
-comparison_operator = "==" | "!=" ;
+(* Only statements appear inside function, method, and 'when' blocks;
+   nested 'spark'/'astro' declarations are not part of block grammar. *)
+block                   = "⟨", statement, { statement }, "⟩" ;
 
-primary          = integer_literal
-                 | boolean_literal
-                 | identifier ;
+primitive_declaration   = declaration_kind, primitive_type,
+                          identifier, "=", expression, "." ;
 
-boolean_literal  = "light" | "dark" ;
-integer_literal  = [ "-" ], digit, { digit } ;
+object_declaration      = variable_kind, astro_type_name,
+                          identifier, "=", expression, "." ;
 
-identifier       = letter, { letter } ;
-letter           = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
-                 | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
-                 | "U" | "V" | "W" | "X" | "Y" | "Z"
-                 | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
-                 | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
-                 | "u" | "v" | "w" | "x" | "y" | "z" ;
+declaration             = primitive_declaration | object_declaration ;
 
-digit            = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+declaration_kind        = "fixed" | "calm" | "flow" ;
+variable_kind           = "calm" | "flow" ;
+
+assignment              = assignable, "=", expression, "." ;
+assignable              = identifier, { field_suffix } ;
+
+when_statement          = "when", expression, block,
+                          [ "otherwise", block ] ;
+
+rise_statement          = "rise", expression, "." ;
+
+(* Only standalone calls are statements; bare expressions are not.
+   In particular, the old invalid Stage 1 form 'score == 20.' remains invalid. *)
+call_statement          = direct_call, "."
+                        | member_call_statement, "." ;
+member_call_statement   = atom, { field_suffix }, member_call_suffix ;
+
+function_declaration    = "spark", identifier, "(", [ parameter_list ], ")",
+                          "->", type_name, block ;
+parameter_list          = parameter, { ",", parameter } ;
+parameter               = [ parameter_kind ], type_name, identifier ;
+parameter_kind          = "calm" | "flow" ;
+
+(* A structure contains at least one field; methods may occur before,
+   between, and after fields. Method declarations reuse 'spark'. *)
+astro_declaration       = "astro", identifier, "⟨", astro_body, "⟩" ;
+astro_body              = { member_function }, field_declaration,
+                          { field_declaration | member_function } ;
+field_declaration       = variable_kind, type_name, identifier, "." ;
+member_function         = function_declaration ;
+
+(* ========================= EXPRESSIONS ========================== *)
+
+expression              = comparison_expression ;
+comparison_expression   = additive_expression,
+                          [ comparison_operator, additive_expression ] ;
+comparison_operator     = "==" | "!=" ;
+
+additive_expression     = multiplicative_expression,
+                          { additive_operator, multiplicative_expression } ;
+additive_operator       = "+" | "-" ;
+
+multiplicative_expression = unary_expression,
+                            { multiplicative_operator, unary_expression } ;
+multiplicative_operator = "*" | "/" ;
+
+(* Grammar includes general unary negation. Parser MUST preferentially
+   fold '-' followed by an INTEGER token into one legacy IntegerLiteral AST
+   node, including '- 123' (whitespace was ignored in Stage 1). This also
+   preserves minimum signed integer literals and old AST golden tests. *)
+unary_expression        = negative_integer_literal
+                        | "-", unary_expression
+                        | postfix_expression ;
+negative_integer_literal = "-", unsigned_integer_literal ;
+
+(* A member call, if present, must END the '~' chain. Field suffixes can
+   precede it. When seeing '~ name', parser looks ahead for '(' to decide
+   between field_suffix and member_call_suffix. No chaining after a method
+   call (approved design 35B). A *global* call result may be a receiver. *)
+postfix_expression      = atom, { field_suffix }, [ member_call_suffix ] ;
+field_suffix            = spaced_tilde, identifier ;
+member_call_suffix      = spaced_tilde, identifier, arguments ;
+
+atom                    = object_constructor
+                        | direct_call
+                        | unsigned_integer_literal
+                        | boolean_literal
+                        | string_literal
+                        | identifier
+                        | "(", expression, ")" ;
+
+direct_call             = identifier, arguments ;
+arguments               = "(", [ argument_list ], ")" ;
+argument_list           = expression, { ",", expression } ;
+
+object_constructor      = astro_type_name, "⟨", field_initializers, "⟩" ;
+field_initializers      = field_initializer, { ",", field_initializer } ;
+field_initializer       = identifier, "=", expression ;
+
+(* ========================= TYPES & LITERALS ===================== *)
+
+type_name               = primitive_type | astro_type_name ;
+primitive_type          = "☼" | "☽" | boolean_type ;
+boolean_type            = "☁" | "☁︎" ;
+astro_type_name         = identifier ;
+
+boolean_literal         = "light" | "dark" ;
+unsigned_integer_literal = digit, { digit } ;
+
+(* Strings are UTF-8 literals. Their only legal semantic use is as a
+   direct argument to the built-in recordCoordinates(...); they are NOT a
+   storable, returnable, or user-function parameter type. *)
+string_literal          = quote, { string_character | escape_sequence }, quote ;
+escape_sequence         = backslash, ( "n" | "t" | quote | backslash ) ;
+quote                   = '"' ;
+backslash               = '\' ;
+string_character        = ? valid Unicode scalar except double quote,
+                            backslash, U+000A (LF) and U+000D (CR) ? ;
+
+(* ========================= LEXICAL RULES ======================== *)
+
+identifier              = letter, { letter } ;
+letter                  = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J"
+                        | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T"
+                        | "U" | "V" | "W" | "X" | "Y" | "Z"
+                        | "a" | "b" | "c" | "d" | "e" | "f" | "g" | "h" | "i" | "j"
+                        | "k" | "l" | "m" | "n" | "o" | "p" | "q" | "r" | "s" | "t"
+                        | "u" | "v" | "w" | "x" | "y" | "z" ;
+
+digit                   = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+(* Except in strings and in spaced_tilde, whitespace between tokens is
+   ignored: ASCII space, horizontal tab U+0009, CR U+000D, LF U+000A. *)
+spaced_tilde            = mandatory_spaces, "~", mandatory_spaces ;
+mandatory_spaces        = " ", { " " } ;
+
+(* Lexing and contextual-name constraints:
+   1. Longest-match symbols are used: '->' before '-', '==' before '=',
+      '!=' before unexpected '!', and '☁︎' before '☁'.
+   2. The lexer implements spaced_tilde as ONE accessor token or checks
+      both immediately adjacent source bytes for ASCII 0x20.
+      Tabs/newlines alone do not satisfy this rule; missing spaces are a
+      LEXICAL error at '~'.
+   3. Existing Stage 1 words fixed/calm/flow/when/otherwise/light/dark
+      retain their reserved-token meaning.
+   4. NEW words spark/astro/rise/core and built-in names
+      lookThroughTelescope/recordCoordinates are CONTEXTUAL. Their
+      spellings remain legal identifiers when used as ordinary names,
+      except for context-specific semantic restrictions (e.g., a local
+      variable named 'core' inside a method is illegal).
+   5. No digit, underscore, or non-Latin letter belongs to identifier.
+   6. A malformed UTF-8 sequence, unknown escape, unterminated string,
+      unsupported symbol, or unsupported selector is a lexical error.
+   7. Semantics distinguish type identifiers from variable identifiers.
+      Only known astro types can be used as user-defined type names.
+   8. Declaration of user astro variables allows only calm/flow, never
+      fixed. Fields likewise allow only calm/flow.
+   9. Constructor fields are named, exactly once each, no unknowns;
+      field expressions evaluate in written order, not declaration order.
+  10. 'rise' outside spark, wrong arities/types, and string use outside
+      the print built-in are semantic errors (unless syntax itself fails).
+  11. 'core' resolves to the current object inside a member function;
+      outside it remains an ordinary identifier when declared.
+  12. Method and global calls have expression forms; calls alone can be
+      statements, but arbitrary expression statements are not legal.
+  13. Source locations and diagnostic spelling of the old Stage 1 AST
+      and golden invalid tests must remain unchanged.
+*)
+
+(* Caelum source files do not support comments; EBNF comments are documentation. *)

@@ -1,0 +1,9 @@
+astro Star ⟨
+    flow ☼ id.
+    spark replace() -> ☼ ⟨
+        core = Star⟨id = 2⟩.
+        rise id.
+    ⟩
+⟩
+flow Star star = Star⟨id = 1⟩.
+recordCoordinates(star ~ replace()).

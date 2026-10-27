@@ -1,0 +1,5 @@
+astro Star ⟨ flow ☼ brightness. ⟩
+calm Star original = Star⟨brightness = 7⟩.
+flow Star copy = original.
+copy ~ brightness = 15.
+recordCoordinates(original, copy).

@@ -1,0 +1,8 @@
+astro Star ⟨ flow ☼ brightness.
+ spark riseBrightness(☼ delta) -> ☼ ⟨
+  brightness = brightness + delta.
+  rise core ~ brightness.
+ ⟩
+⟩
+flow Star star = Star⟨brightness = 100⟩.
+recordCoordinates(star ~ riseBrightness(20), star).

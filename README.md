@@ -1,219 +1,129 @@
-# Caelum Compiler — Stage 1
+# Caelum Compiler — Stage 2
 
-Caelum is a small custom programming language with a sky-themed surface syntax.
-Stage 1 implements a hand-written byte-oriented lexer, a recursive-descent
-parser, an AST class hierarchy, a deterministic AST dump, source positions,
-and golden-file tests.
+Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation.
 
-## Language design
+## Prerequisites
 
-Caelum uses symbols for primitive type names and short English words for
-language behavior.
+- Python 3.10+ and `llvmlite` (`python3 -m pip install llvmlite`).
+- LLVM-compatible `clang` for building the generated IR into executables.
+- No parser generator: the lexer is hand-written and byte-oriented, and the parser is recursive descent.
 
-| Caelum | Meaning |
-| --- | --- |
-| `☼` | signed 32-bit integer (`i32`) |
-| `☽` | signed 64-bit integer (`i64`) |
-| `☁︎` | boolean (`bool`) |
-| `fixed` | constant declaration |
-| `calm` | immutable variable declaration |
-| `flow` | mutable variable declaration |
-| `light` | boolean true |
-| `dark` | boolean false |
-| `when` | conditional (`if`) |
-| `otherwise` | optional `else` branch |
-| `=` | assignment / initializer |
-| `==` | equality comparison |
-| `!=` | inequality comparison |
-| `.` | statement terminator |
-| `⟨ ... ⟩` | non-empty statement block |
-
-Identifiers contain Latin letters only (`A-Z`, `a-z`). Digits, underscores,
-and non-Latin letters are not valid identifier characters.
-
-## Syntax examples
-
-### Constants
-
-```text
-fixed ☼ LIMIT = 100.
-fixed ☽ DISTANCE = 9000000000.
-```
-
-### Immutable variables
-
-```text
-calm ☼ start = 10.
-calm ☁︎ active = light.
-```
-
-### Mutable variables and assignment
-
-```text
-flow ☼ score = 15.
-score = 20.
-```
-
-The parser records whether a declaration is `fixed`, `calm`, or `flow` in the
-AST. Full semantic enforcement of mutability belongs to the later semantic
-stage.
-
-### Booleans
-
-```text
-calm ☁︎ visible = light.
-calm ☁︎ hidden = dark.
-```
-
-### Comparisons
-
-```text
-score == 20
-score != 0
-visible == light
-```
-
-### Conditional without `otherwise`
-
-A block must contain at least one statement.
-
-```text
-when score != 0 ⟨
-    score = 20.
-⟩
-```
-
-### Conditional with `otherwise`
-
-```text
-when active == light ⟨
-    score = 20.
-⟩ otherwise ⟨
-    score = 0.
-⟩
-```
-
-Nested `when` statements are allowed.
-
-### Integer ranges and overflow
-
-`☼` has the range `-2147483648..2147483647`.
-`☽` has the range `-9223372036854775808..9223372036854775807`.
-
-Typed integer literals in declarations are checked against these ranges. For
-example, this is rejected:
-
-```text
-fixed ☼ BIG = 2147483648.
-```
-
-with an error such as:
-
-```text
-compilation error: line 1:15: integer literal overflows ☼ (i32)
-```
-
-## Grammar
-
-The complete EBNF grammar is in [`grammar.ebnf`](grammar.ebnf). The parser is
-implemented with recursive descent and mirrors the grammar using dedicated
-methods such as `parse_program`, `parse_statement`, `parse_declaration`,
-`parse_assignment`, `parse_if_statement`, `parse_block`, `parse_expression`,
-`parse_comparison`, and `parse_primary`.
-
-## Lexer implementation
-
-The lexer in `lexer.py` is hand-written and operates directly on source bytes.
-It does not use regular expressions, `split()`, or a lexer generator. ASCII
-identifiers and integer literals are consumed byte-by-byte. Caelum's UTF-8
-symbols (`☼`, `☽`, `☁︎`, `⟨`, `⟩`) are matched as exact byte sequences.
-
-Every token stores:
-
-- token kind;
-- original token text;
-- line;
-- column.
-
-## AST
-
-AST nodes are classes rooted at `ASTNode`. The hierarchy includes program,
-statement, expression, declaration, assignment, conditional, comparison,
-identifier, integer literal, and boolean literal nodes. Every node stores its
-source line and column.
-
-The AST dump is deterministic and includes node types, source positions,
-declaration kind, type, names, operators, values, and nesting.
-
-## Running the compiler
-
-Python 3.10 or newer is recommended. No third-party dependencies are required.
-
-Run the included example:
+## Build, run, and inspect
 
 ```bash
 python3 compiler.py --ast examples/example.caelum
+python3 compiler.py examples/example.caelum output.ll
+clang output.ll -o caelum-program
+./caelum-program
+python3 run_tests.py
 ```
 
-Run another source file:
+`--ast` runs lexical and syntax checks only, preserving all Stage 1 golden files, including their error positions and AST nodes. Normal compilation runs the separate semantic analysis **before** LLVM generation. The compiler writes the builder-printed module to `output.ll`, not handwritten IR. No output file is left after a compilation error.
 
-```bash
-python3 compiler.py --ast path/to/program.caelum
-```
-
-On success, the AST is written to stdout and the exit code is `0`.
-
-Lexical or syntax/required range errors are written as exactly one line to
-stderr in this form:
+Errors in lexical, syntactic, and semantic checks use **one line on stderr** and a nonzero status:
 
 ```text
 compilation error: line L:C: message
 ```
 
-The exit code is non-zero and stdout is empty.
+Runtime errors (division by zero, overflow, invalid input) print a `runtime error:` diagnostic to stderr and exit nonzero.
 
-## Running tests
+## Types and identifiers
 
-Run the complete suite with:
+| Caelum | Meaning |
+| --- | --- |
+| `☼` | Signed 32-bit integer, −2147483648 … 2147483647 |
+| `☽` | Signed 64-bit integer, −9223372036854775808 … 9223372036854775807 |
+| `☁︎` **or** `☁` | Boolean; both Unicode spellings resolve to **one** type |
+| `light`, `dark` | Boolean values, printed as `true`, `false` |
+| `fixed` | Constant primitive declaration |
+| `calm` | Immutable declaration |
+| `flow` | Mutable declaration |
+| `⟨ ... ⟩` | Nonempty executable block; also encloses named constructor fields |
+| `.` | Statement terminator |
 
-```bash
-python3 run_tests.py
-```
+The original `☁︎` is U+2601 followed by U+FE0E; plain `☁` is U+2601. Both are accepted, addressing the Stage 1 feedback about the invisible selector. U+FE0F is **not** supported. Identifiers contain only ASCII Latin letters (`A–Z`, `a–z`), without digits or underscores. All original Stage 1 keywords remain reserved; the new words `spark`, `astro`, `rise`, and `core` are contextual. The two builtin names are protected against declarations as global user functions but can be shadowed by ordinary variables.
 
-The repository contains 47 golden-file tests:
-
-- 22 valid programs with expected AST dumps;
-- 25 invalid programs with expected one-line errors.
-
-The runner reports every passing/failing case and returns a non-zero exit code
-if any test fails.
-
-The tests cover declarations, all three primitive types, both boolean values,
-assignment, `==`, `!=`, `when`, optional `otherwise`, nested conditionals,
-non-empty block rules, identifier restrictions, lexical errors, malformed
-syntax, and both valid boundaries and overflow for `☼` and `☽`.
-
-## Project structure
+### Variables, scopes, and comparisons
 
 ```text
-.
-├── compiler.py
-├── lexer.py
-├── parser.py
-├── tokens.py
-├── errors.py
-├── ast_nodes.py
-├── ast_printer.py
-├── grammar.ebnf
-├── run_tests.py
-├── README.md
-├── examples/
-│   └── example.caelum
-└── tests/
-    ├── valid/
-    │   ├── *.caelum
-    │   └── *.expected
-    └── invalid/
-        ├── *.caelum
-        └── *.expected
+fixed ☼ LIMIT = 100.
+calm ☁ ready = light.
+flow ☽ distance = 9000000000.
+flow ☼ count = 2.
+when ready == light ⟨
+    flow ☼ count = 5.
+    recordCoordinates(count).
+⟩ otherwise ⟨
+    recordCoordinates(distance).
+⟩
 ```
+
+Scopes are nested; shadowing is allowed, but duplicate definitions in one scope are not. A local name shadows fields, then globals, and ultimately built-ins. Methods of the current `astro` take precedence over global functions. Explicit `core ~ field` or `core ~ method()` bypasses local shadowing. A name resolving to a variable is not callable. Top-level statements execute top-to-bottom. Globals must be declared before use, including inside function bodies; function and `astro` types may be declared below their uses. Potentially unsafe global initialization dependencies are rejected.
+
+Arithmetic supports `+`, `-`, `*`, `/`, unary `-`, parentheses and `==`, `!=`; multiplication/division bind more tightly than addition/subtraction, which bind more tightly than equality. Expressions and arguments evaluate left-to-right. Division truncates toward zero. Literal ranges and literal-only constant arithmetic are checked at compile time; operations involving variables use runtime checks (including min-int / −1 and division by zero). There are no implicit casts between typed `☼` and `☽` values and no explicit numeric casts. Numeric **literals** can adopt an expected `☽` width in expression contexts. Equality for `astro` recursively compares fields of the same nominal type.
+
+## Functions: `spark` and `rise`
+
+```text
+spark twice(☼ value) -> ☼ ⟨
+    rise value + value.
+⟩
+recordCoordinates(twice(7)).
+```
+
+Function arguments are typed and passed **by value**. Parameters are `calm` by default; `flow ☼ value` permits reassignment to a local copy. All functions return their declared type, and all control-flow paths must execute `rise`. Recursive calls, forward calls, nested calls and calls used as standalone statements are allowed. Functions can read globals declared before them; `flow` globals can be assigned. Nested function declarations and top-level `rise` are forbidden. Every wrong argument count, type, or returned type produces a semantic diagnostic. A global `spark` named after a built-in is forbidden.
+
+## Structures: `astro` and named construction
+
+```text
+astro Point ⟨
+    flow ☼ x.
+    calm ☼ y.
+    spark getX() -> ☼ ⟨ rise x. ⟩
+⟩
+
+flow Point point = Point⟨y = 4, x = 3⟩.
+recordCoordinates(point, point ~ getX()).
+```
+
+Every `astro` declares at least one field. Fields use only `calm` or `flow`, without field defaults. Methods and fields can be declared in any order, with methods seeing other methods and fields declared later. Named constructors supply **every field exactly once**; missing, duplicate or unknown field names and wrong field types are errors. The initializer order is arbitrary and expressions run in their written order; the new object's fields do not implicitly become visible to each other during construction. Structures are nominally typed; self-referential by-value cycles are invalid. `fixed` objects are forbidden (use `calm` or `flow`).
+
+Structure values are copied on assignment and when passed to ordinary functions. Copying `calm` to `flow` creates an independent mutable binding, but individual `calm` fields stay immutable. Assignment to a field through `~` requires **each link of the chain** to be mutable, including the root object and final field. An entire `flow` structure field may be replaced with a value of exactly its type. The `~` operator **requires at least one ordinary space on each side**; tabs and newlines alone do not count. A member call ends its `~` chain; a global function result may be read via `~` without assigning it first.
+
+### Methods and mutating effects
+
+```text
+astro Star ⟨
+    flow ☼ brightness.
+    spark increase(☼ delta) -> ☼ ⟨
+        core ~ brightness = brightness + delta.
+        rise brightness.
+    ⟩
+⟩
+flow Star sirius = Star⟨brightness = 100⟩.
+recordCoordinates(sirius ~ increase(5)).
+```
+
+`core` refers to the current `astro` object and can be used as a value. It cannot be reassigned and cannot be shadowed by a method parameter/local variable. Fields can be read and written either by bare name or explicitly through `core`, with identical mutability rules. The compiler **automatically** determines whether a method is mutating: it writes a field of any `astro` object, or transitively calls a function/method that does. Writing a global primitive alone does not make a method mutating. Recursive and indirect calls are included in the effect analysis. A mutating method requires a mutable object chain. Calls on `calm` or temporary receivers are rejected; nonmutating methods can be used there.
+
+## Input and output
+
+```text
+flow ☼ n = lookThroughTelescope().
+recordCoordinates("Distance", n, light).
+```
+
+`lookThroughTelescope()` reads one **whole decimal integer token** from stdin and returns `☼`; malformed text, EOF and out-of-range values are runtime errors. Whitespace separates tokens. The runtime uses `scanf` for token acquisition and validates the entire token and range. The default C runtime is linked using `clang`.
+
+`recordCoordinates()` accepts **one or more** arguments and prints each value immediately followed by a newline, before evaluating the next argument. Supported values: `☼` and `☽` in decimal (`%d`, `%lld`); booleans as `true` / `false`; literal strings without quotes; and `astro` objects recursively in declaration field order, for instance `Star⟨id=1, brightness=100⟩`. Strings have UTF-8 and `\n`, `\t`, `\"`, `\\` escapes. Strings cannot be variables, fields, function parameters or return types.
+
+## LLVM implementation
+
+The compiler declares all functions before generating function bodies. User functions use names such as `caelum.fn.twice`; members use `caelum.method.Star.increase` with a pointer to the receiver as the first argument. Named structs use LLVM identified struct types. Each field access uses the field's index from the semantic structure table to generate `getelementptr`; object construction has one value per field. Branching uses `if/else` basic blocks. Arithmetic overflow checks use `llvm.sadd/ssub/smul.with.overflow` intrinsic declarations and explicit branches on their flags. The `scanf` and `printf` functions are declared, with their format strings stored as global constants.
+
+## Tests and submission
+
+`python3 run_tests.py` runs the 47 original Stage 1 AST golden tests unchanged, checks that all Stage 1 valid cases still compile to LLVM, checks Stage 2 semantic-invalid programs and one-line diagnostics, builds and executes end-to-end programs with `clang`, verifies exact stdout, supplies `.in` files for stdin tests, and checks runtime error stderr and exit status. It reports every failure and exits nonzero when any test fails.
+
+The local `stage2` branch contains Git commits and is not pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions; the assignment separately requires an `ai_usage_2.txt` disclosure at final submission.

@@ -1,0 +1,5 @@
+flow ☼ result = twice(7).
+spark twice(☼ x) -> ☼ ⟨
+ rise x + x.
+⟩
+recordCoordinates(result).
