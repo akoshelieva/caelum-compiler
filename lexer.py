@@ -1,177 +1,80 @@
-"""Hand-written byte-oriented lexer for Caelum.
-
-The lexer intentionally does not use regular expressions, str.split(), or a
-lexer generator. It walks the UTF-8 source byte-by-byte and recognizes the
-non-ASCII language symbols from their exact UTF-8 byte sequences.
-"""
-
+"""Hand-written byte-oriented UTF-8 state machine for Caelum."""
 from enum import Enum, auto
-
 from errors import CompilationError
-from tokens import Token, TokenKind
-
+from tokens import Token, TokenKind as K
 
 class LexerState(Enum):
-    START = auto()
-    IDENTIFIER = auto()
-    INTEGER = auto()
+    START=auto(); IDENTIFIER=auto(); INTEGER=auto(); STRING=auto()
 
-
-_KEYWORDS = {
-    "fixed": TokenKind.FIXED,
-    "calm": TokenKind.CALM,
-    "flow": TokenKind.FLOW,
-    "when": TokenKind.WHEN,
-    "otherwise": TokenKind.OTHERWISE,
-    "light": TokenKind.LIGHT,
-    "dark": TokenKind.DARK,
-}
-
-_SYMBOLS = (
-    ("☁︎".encode("utf-8"), TokenKind.TYPE_BOOL, "☁︎"),
-    ("☼".encode("utf-8"), TokenKind.TYPE_I32, "☼"),
-    ("☽".encode("utf-8"), TokenKind.TYPE_I64, "☽"),
-    ("⟨".encode("utf-8"), TokenKind.BLOCK_OPEN, "⟨"),
-    ("⟩".encode("utf-8"), TokenKind.BLOCK_CLOSE, "⟩"),
-)
-
+_KEYWORDS = dict(fixed=K.FIXED, calm=K.CALM, flow=K.FLOW, when=K.WHEN,
+                 otherwise=K.OTHERWISE, light=K.LIGHT, dark=K.DARK)
+_SYMBOLS = (("☁︎".encode(),K.TYPE_BOOL,"☁︎"), ("☁".encode(),K.TYPE_BOOL,"☁︎"),
+            ("☼".encode(),K.TYPE_I32,"☼"),("☽".encode(),K.TYPE_I64,"☽"),
+            ("⟨".encode(),K.BLOCK_OPEN,"⟨"),("⟩".encode(),K.BLOCK_CLOSE,"⟩"))
+_ASCII = {ord('.'):K.DOT, ord('('):K.LPAREN, ord(')'):K.RPAREN,
+          ord(','):K.COMMA, ord('+'):K.PLUS, ord('*'):K.STAR, ord('/'):K.SLASH}
+_ESC = {ord('n'):'\n',ord('t'):'\t',ord('"'):'"',ord('\\'):'\\'}
 
 class Lexer:
-    def __init__(self, source: bytes) -> None:
-        self.source = source
-        self.position = 0
-        self.line = 1
-        self.column = 1
+    def __init__(self,source:bytes):
+        self.source=source; self.position=0; self.line=1; self.column=1
 
-    def tokenize(self) -> list[Token]:
-        tokens: list[Token] = []
-        state = LexerState.START
+    def _take_ascii(self):
+        byte=self.source[self.position]; self.position+=1
+        if byte==10:self.line+=1;self.column=1
+        else:self.column+=1
+        return byte
 
-        while self.position < len(self.source):
-            if state is LexerState.START:
-                byte = self.source[self.position]
-
-                if self._is_whitespace(byte):
-                    self._advance_ascii(byte)
-                    continue
-
-                symbol = self._match_symbol()
-                if symbol is not None:
-                    symbol_bytes, kind, text = symbol
-                    tokens.append(Token(kind, text, self.line, self.column))
-                    self._advance_symbol(len(symbol_bytes))
-                    continue
-
-                start_line = self.line
-                start_column = self.column
-
-                if self._is_letter(byte):
-                    state = LexerState.IDENTIFIER
-                    start = self.position
-                    while self.position < len(self.source) and self._is_letter(
-                        self.source[self.position]
-                    ):
-                        self._advance_ascii(self.source[self.position])
-                    text = self.source[start:self.position].decode("ascii")
-                    kind = _KEYWORDS.get(text, TokenKind.IDENTIFIER)
-                    tokens.append(Token(kind, text, start_line, start_column))
-                    state = LexerState.START
-                    continue
-
-                if self._is_digit(byte):
-                    state = LexerState.INTEGER
-                    start = self.position
-                    while self.position < len(self.source) and self._is_digit(
-                        self.source[self.position]
-                    ):
-                        self._advance_ascii(self.source[self.position])
-                    text = self.source[start:self.position].decode("ascii")
-                    tokens.append(
-                        Token(TokenKind.INTEGER, text, start_line, start_column)
-                    )
-                    state = LexerState.START
-                    continue
-
-                if byte == ord("="):
-                    if self._peek_byte(1) == ord("="):
-                        tokens.append(
-                            Token(TokenKind.EQUAL, "==", start_line, start_column)
-                        )
-                        self._advance_ascii(byte)
-                        self._advance_ascii(ord("="))
-                    else:
-                        tokens.append(
-                            Token(TokenKind.ASSIGN, "=", start_line, start_column)
-                        )
-                        self._advance_ascii(byte)
-                    continue
-
-                if byte == ord("!") and self._peek_byte(1) == ord("="):
-                    tokens.append(
-                        Token(TokenKind.NOT_EQUAL, "!=", start_line, start_column)
-                    )
-                    self._advance_ascii(byte)
-                    self._advance_ascii(ord("="))
-                    continue
-
-                if byte == ord("-"):
-                    tokens.append(
-                        Token(TokenKind.MINUS, "-", start_line, start_column)
-                    )
-                    self._advance_ascii(byte)
-                    continue
-
-                if byte == ord("."):
-                    tokens.append(Token(TokenKind.DOT, ".", start_line, start_column))
-                    self._advance_ascii(byte)
-                    continue
-
-                self._raise_unexpected_byte(byte)
-
-        tokens.append(Token(TokenKind.EOF, "", self.line, self.column))
-        return tokens
-
-    def _match_symbol(self):
-        for symbol in _SYMBOLS:
-            symbol_bytes = symbol[0]
-            if self.source.startswith(symbol_bytes, self.position):
-                return symbol
-        return None
-
-    def _peek_byte(self, offset: int) -> int | None:
-        index = self.position + offset
-        if index >= len(self.source):
-            return None
-        return self.source[index]
-
-    @staticmethod
-    def _is_letter(byte: int) -> bool:
-        return ord("A") <= byte <= ord("Z") or ord("a") <= byte <= ord("z")
-
-    @staticmethod
-    def _is_digit(byte: int) -> bool:
-        return ord("0") <= byte <= ord("9")
-
-    @staticmethod
-    def _is_whitespace(byte: int) -> bool:
-        return byte in (ord(" "), ord("\t"), ord("\r"), ord("\n"))
-
-    def _advance_ascii(self, byte: int) -> None:
-        self.position += 1
-        if byte == ord("\n"):
-            self.line += 1
-            self.column = 1
-        else:
-            self.column += 1
-
-    def _advance_symbol(self, byte_count: int) -> None:
-        self.position += byte_count
-        self.column += 1
-
-    def _raise_unexpected_byte(self, byte: int) -> None:
-        if 32 <= byte <= 126:
-            display = chr(byte)
-            message = f"unexpected character '{display}'"
-        else:
-            message = f"unexpected byte 0x{byte:02X}"
-        raise CompilationError(self.line, self.column, message)
+    def tokenize(self):
+        out=[]; s=self.source
+        while self.position<len(s):
+            p=self.position; b=s[p]; line,col=self.line,self.column
+            if b in (32,9,10,13): self._take_ascii();continue
+            match=next((item for item in _SYMBOLS if s.startswith(item[0],p)),None)
+            if match:
+                data,kind,text=match;self.position+=len(data);self.column+=1
+                out.append(Token(kind,text,line,col)); continue
+            if 65<=b<=90 or 97<=b<=122:
+                while self.position<len(s) and (65<=s[self.position]<=90 or 97<=s[self.position]<=122):self._take_ascii()
+                text=s[p:self.position].decode('ascii')
+                out.append(Token(_KEYWORDS.get(text,K.IDENTIFIER),text,line,col));continue
+            if 48<=b<=57:
+                while self.position<len(s) and 48<=s[self.position]<=57:self._take_ascii()
+                out.append(Token(K.INTEGER,s[p:self.position].decode('ascii'),line,col));continue
+            if b==34:
+                self._take_ascii();val=[];start=self.position
+                while True:
+                    if self.position>=len(s) or s[self.position] in (10,13):
+                        raise CompilationError(line,col,'unterminated string literal')
+                    if s[self.position]==34:
+                        self._take_ascii();break
+                    if s[self.position]==92:
+                        self._take_ascii()
+                        if self.position>=len(s) or s[self.position] not in _ESC:
+                            raise CompilationError(self.line,self.column,'invalid string escape')
+                        val.append(_ESC[self._take_ascii()]);continue
+                    if s[self.position]<32:raise CompilationError(self.line,self.column,'control character in string')
+                    if s[self.position]<128:val.append(chr(self._take_ascii()));continue
+                    # Consume one complete UTF-8 scalar, preserving source-column semantics.
+                    lead=s[self.position];width=2 if 0xc2<=lead<=0xdf else 3 if 0xe0<=lead<=0xef else 4 if 0xf0<=lead<=0xf4 else 0
+                    if not width:raise CompilationError(self.line,self.column,'invalid UTF-8 string')
+                    fragment=s[self.position:self.position+width]
+                    try:ch=fragment.decode('utf-8')
+                    except UnicodeDecodeError:raise CompilationError(self.line,self.column,'invalid UTF-8 string') from None
+                    val.append(ch);self.position+=width;self.column+=1
+                out.append(Token(K.STRING,''.join(val),line,col));continue
+            if s.startswith(b'==',p) or s.startswith(b'!=',p) or s.startswith(b'->',p):
+                text=s[p:p+2].decode();kind={'==':K.EQUAL,'!=':K.NOT_EQUAL,'->':K.ARROW}[text]
+                self._take_ascii();self._take_ascii();out.append(Token(kind,text,line,col));continue
+            if b==ord('~'):
+                if p==0 or p+1>=len(s) or s[p-1]!=32 or s[p+1]!=32:
+                    raise CompilationError(line,col,"'~' requires spaces on both sides")
+                self._take_ascii();out.append(Token(K.MEMBER,'~',line,col));continue
+            if b==ord('=') or b==ord('-'):
+                self._take_ascii();out.append(Token(K.ASSIGN if b==61 else K.MINUS,chr(b),line,col));continue
+            if b in _ASCII:
+                self._take_ascii();out.append(Token(_ASCII[b],chr(b),line,col));continue
+            if 32<=b<=126:message=f"unexpected character '{chr(b)}'"
+            else:message=f' unexpected byte 0x{b:02X}'.strip()
+            raise CompilationError(line,col,message)
+        out.append(Token(K.EOF,'',self.line,self.column));return out
