@@ -1,0 +1,3 @@
+flow ☼ x = lookThroughTelescope().
+flow ☼ y = lookThroughTelescope().
+recordCoordinates(x + y).

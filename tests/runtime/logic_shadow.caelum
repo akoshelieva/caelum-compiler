@@ -1,0 +1,3 @@
+flow ☼ brightness = 100.
+when light ⟨ flow ☼ brightness = 200. recordCoordinates(brightness). ⟩
+recordCoordinates(brightness).

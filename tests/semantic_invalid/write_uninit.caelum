@@ -1,0 +1,3 @@
+astro Star ⟨ flow ☼ x. ⟩
+flow Star s = Star⟨x = 1⟩.
+recordCoordinates(s ~ y).

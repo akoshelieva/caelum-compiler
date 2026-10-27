@@ -1,0 +1,4 @@
+spark factorial(☼ n) -> ☼ ⟨
+ when n == 0 ⟨ rise 1. ⟩ otherwise ⟨ rise n * factorial(n - 1). ⟩
+⟩
+recordCoordinates(factorial(5)).

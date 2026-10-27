@@ -1,0 +1,6 @@
+astro Star ⟨ flow ☼ value.
+ spark first() -> ☼ ⟨ rise second(). ⟩
+ spark second() -> ☼ ⟨ rise value. ⟩
+⟩
+calm Star s = Star⟨value = 12⟩.
+recordCoordinates(s ~ first()).
