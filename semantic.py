@@ -15,6 +15,7 @@ class Symbol:
     kind:str
     node:object=None
     initialized:bool=True
+    index:int|None=None  # LLVM struct field index, assigned when defining an astro
 
 @dataclass(eq=False)
 class FunctionInfo:
@@ -71,7 +72,7 @@ class Semantic:
                     self.validate_type(f.type_name,f)
                     if f.name in info.fields:self.error(f,f"duplicate field '{f.name}'")
                     if f.name=='core':self.error(f,"field name 'core' is reserved in methods")
-                    info.fields[f.name]=Symbol(f.name,f.type_name,f.mutable,'field',f)
+                    info.fields[f.name]=Symbol(f.name,f.type_name,f.mutable,'field',f,index=index)
                     f._index=index
                 for method in n.methods:self.register_function(method,n.name)
         for n in self.program.statements:
@@ -193,6 +194,10 @@ class Semantic:
         self.error(n,'unsupported statement')
 
     def assign(self,target,value,n):
+        # `core` is a stable receiver reference: its mutable *fields* may be
+        # written, but rebinding the receiver itself is never permitted.
+        if self.owner and isinstance(target, IdentifierNode) and target.name == 'core':
+            self.error(target, "cannot reassign 'core'")
         typ,mutable=self.lvalue(target)
         if not mutable:self.error(target,'cannot assign through an immutable variable or field chain')
         self.require(typ,self.expr(value,typ),value)

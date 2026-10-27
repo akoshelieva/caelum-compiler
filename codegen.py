@@ -131,7 +131,9 @@ class LLVMGenerator:
             return self.field_ptr(ptr,n.base._ty,n.name)
         raise RuntimeError('not an lvalue')
     def field_ptr(self,obj,typ,name):
-        index=list(self.sem.structs[typ].fields).index(name)
+        # Resolve an accessor through the semantic field table, which stores
+        # a stable LLVM index for every field in declaration order.
+        index=self.sem.structs[typ].fields[name].index
         return self.builder.gep(obj,[self.integer(0),self.integer(index)],inbounds=True)
     def temp(self,value):
         p=self.builder.alloca(value.type);self.builder.store(value,p);return p
@@ -202,11 +204,15 @@ class LLVMGenerator:
             text=self.builder.select(value,self.string_ptr('true'),self.string_ptr('false'))
             self.builder.call(self.printf,[self.string_ptr('%s'),text]);return
         if typ==STRING:self.builder.call(self.printf,[self.string_ptr('%s'),value]);return
+        # Print objects through their field table: a new astro requires no
+        # object-specific code, only a GEP and load for each declared field.
+        obj=self.temp(value)
         self.call_printf(typ+'⟨')
         for index,field in enumerate(self.sem.structs[typ].fields.values()):
             if index:self.call_printf(', ')
             self.call_printf(field.name+'=')
-            self.print_value(self.builder.extract_value(value,index),field.type)
+            field_value=self.builder.load(self.field_ptr(obj,typ,field.name))
+            self.print_value(field_value,field.type)
         self.call_printf('⟩')
 
     def read_int(self):
