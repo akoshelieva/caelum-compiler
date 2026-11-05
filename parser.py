@@ -109,7 +109,14 @@ class Parser:
         self.eat(K.BLOCK_CLOSE,"'⟩'")
         if not fields:raise CompilationError(t.line,t.column,'astro must declare at least one field')
         return StructNode(t.line,t.column,name.text,fields,methods)
-    def parse_expression(self):return self.parse_comparison()
+    def parse_expression(self):return self.parse_pipeline()
+    def parse_pipeline(self):
+        value=self.parse_comparison();stages=[]
+        while self.peek().kind==K.PIPE:
+            operator=self.eat(K.PIPE)
+            name=self.eat(K.IDENTIFIER,"function name after '|>'")
+            stages.append(PipeStageNode(operator.line,operator.column,name.text))
+        return PipelineNode(stages[0].line,stages[0].column,value,stages) if stages else value
     def parse_comparison(self):
         left=self.parse_additive()
         if self.peek().kind in (K.EQUAL,K.NOT_EQUAL):

@@ -134,3 +134,14 @@ class MemberNode(ExpressionNode):
 class ConstructorNode(ExpressionNode):
     name: str
     fields: list[tuple[str,ExpressionNode]]
+
+
+@dataclass
+class PipeStageNode(ASTNode):
+    name: str
+
+
+@dataclass
+class PipelineNode(ExpressionNode):
+    value: ExpressionNode
+    stages: list[PipeStageNode]

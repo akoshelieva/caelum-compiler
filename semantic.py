@@ -112,6 +112,9 @@ class Semantic:
                 if isinstance(node,IdentifierNode):
                     sym=getattr(node,'_symbol',None)
                     if isinstance(sym,Symbol) and sym.kind=='global':visited.add(sym.name)
+                if isinstance(node,PipelineNode):
+                    for stage in node.stages:
+                        visited.update(all_reads[stage._callee])
                 if isinstance(node,CallNode):
                     callee=getattr(node,'_callee',None)
                     if isinstance(callee,FunctionInfo):visited.update(all_reads[callee])
@@ -240,7 +243,7 @@ class Semantic:
     def hint(self,node):
         if isinstance(node,IdentifierNode):
             s=self.resolve(node.name,node);return s.type if s else None
-        if isinstance(node,(CallNode,MemberNode)):
+        if isinstance(node,(CallNode,MemberNode,PipelineNode)):
             return getattr(node,'_ty',None)
         if isinstance(node,(BinaryNode,ComparisonNode)):
             return self.hint(node.left) or self.hint(node.right)
@@ -302,6 +305,31 @@ class Semantic:
             missing=set(struct.fields)-found
             if missing:self.error(n,f"missing field '{sorted(missing)[0]}' in {n.name} constructor")
             n._ty=n.name;return n.name
+        if isinstance(n,PipelineNode):
+            # Resolve stages before checking the input so an integer literal can
+            # adopt the first stage's parameter width (as in ordinary calls).
+            callees=[]
+            for index,stage in enumerate(n.stages,1):
+                sym=self.resolve(stage.name,stage)
+                if sym is not None:
+                    self.error(stage,f"pipe stage {index} '{stage.name}' is not callable")
+                callee=self.functions.get(stage.name)
+                if callee is None:
+                    self.error(stage,f"pipe stage {index} '{stage.name}' requires a global user function")
+                if len(callee.params)!=1:
+                    self.error(stage,f"pipe stage {index} '{stage.name}' expects a function with exactly 1 parameter, got {len(callee.params)}")
+                stage._callee=callee
+                callees.append(callee)
+            actual=self.expr(n.value,callees[0].params[0].type)
+            for index,(stage,callee) in enumerate(zip(n.stages,callees),1):
+                target=callee.params[0].type
+                if target!=actual:
+                    self.error(stage,f"pipe stage {index} '{stage.name}' expects {target}, got {actual}")
+                stage._ty=callee.result
+                actual=callee.result
+                if self.current:self.current.calls.add(callee)
+            n._ty=actual
+            return actual
         if isinstance(n,CallNode):
             s=self.resolve(n.name,n)
             # Local variables/parameters and fields shadow a callable, but methods

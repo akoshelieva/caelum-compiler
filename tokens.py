@@ -8,7 +8,7 @@ class TokenKind(Enum):
     IDENTIFIER=auto(); INTEGER=auto(); STRING=auto()
     ASSIGN=auto(); EQUAL=auto(); NOT_EQUAL=auto(); MINUS=auto(); PLUS=auto()
     STAR=auto(); SLASH=auto(); DOT=auto(); BLOCK_OPEN=auto(); BLOCK_CLOSE=auto()
-    LPAREN=auto(); RPAREN=auto(); COMMA=auto(); ARROW=auto(); MEMBER=auto(); EOF=auto()
+    LPAREN=auto(); RPAREN=auto(); COMMA=auto(); ARROW=auto(); PIPE=auto(); MEMBER=auto(); EOF=auto()
 
 @dataclass(frozen=True)
 class Token:

@@ -63,8 +63,8 @@ class Lexer:
                     except UnicodeDecodeError:raise CompilationError(self.line,self.column,'invalid UTF-8 string') from None
                     val.append(ch);self.position+=width;self.column+=1
                 out.append(Token(K.STRING,''.join(val),line,col));continue
-            if s.startswith(b'==',p) or s.startswith(b'!=',p) or s.startswith(b'->',p):
-                text=s[p:p+2].decode();kind={'==':K.EQUAL,'!=':K.NOT_EQUAL,'->':K.ARROW}[text]
+            if s.startswith(b'==',p) or s.startswith(b'!=',p) or s.startswith(b'->',p) or s.startswith(b'|>',p):
+                text=s[p:p+2].decode();kind={'==':K.EQUAL,'!=':K.NOT_EQUAL,'->':K.ARROW,'|>':K.PIPE}[text]
                 self._take_ascii();self._take_ascii();out.append(Token(kind,text,line,col));continue
             if b==ord('~'):
                 if p==0 or p+1>=len(s) or s[p-1]!=32 or s[p+1]!=32:

@@ -165,6 +165,11 @@ class LLVMGenerator:
             for field_name,expr in n.fields:
                 slot=self.field_ptr(obj,n.name,field_name);self.builder.store(self.value(expr),slot)
             return self.builder.load(obj)
+        if isinstance(n,PipelineNode):
+            result=self.value(n.value)
+            for stage in n.stages:
+                result=self.builder.call(self.fn_map[stage._callee],[result])
+            return result
         if isinstance(n,CallNode):
             if getattr(n,'_builtin',None)=='lookThroughTelescope':return self.read_int()
             if getattr(n,'_builtin',None)=='recordCoordinates':
