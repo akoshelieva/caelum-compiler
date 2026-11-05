@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Caelum regression and end-to-end golden-file suite (all tests are run)."""
+"""Caelum regression and end-to-end golden-file suite ."""
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import subprocess
@@ -76,8 +76,7 @@ def stage1_codegen(path,optimize=False):
         result=invoke('--optimize',path,Path(d)/'stage1.ll') if optimize else invoke(path,Path(d)/'stage1.ll')
         return result.returncode==0 and result.stderr=='' ,repr(result.stderr)
 
-# The tactical game is larger than the earlier examples. Compile each native
-# variant once, then reuse the executable for every golden and strategy run.
+
 _SPACE_GAME_DIRECTORY=None
 _SPACE_GAME_BINARIES={}
 
@@ -98,8 +97,6 @@ def space_battle_executable(optimize=False):
     result=invoke(source,ir,'--optimize') if optimize else invoke(source,ir)
     if result.returncode or result.stderr or not ir.exists():
         raise RuntimeError(f'game compilation failed: {result.stderr}')
-    # Prefer the exact WSL build with llc; the clang IR backend can emit the
-    # same native object on systems where llc is not installed.
     build=([LLC,'-mtriple=x86_64-pc-linux-gnu','-filetype=obj',str(ir),'-o',str(obj)]
            if LLC else [CLANG,'-Wno-override-module','-target','x86_64-pc-linux-gnu',
                         '-c',str(ir),'-o',str(obj)])

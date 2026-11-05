@@ -1,8 +1,4 @@
-"""Conservative, semantics-preserving, checked-AST optimizations for Caelum.
-
-No LLVM text is generated here.  Annotations from Semantic provide binding
-identity and call targets; changed ASTs are checked again before codegen.
-"""
+"""Conservative, semantics-preserving, checked-AST optimizations for Caelum."""
 from collections import Counter
 from dataclasses import fields
 from ast_nodes import *
@@ -61,7 +57,6 @@ class Optimizer:
         self.program = program
         self.sem = semantic
         self.serial = 0
-        # Fresh names only use ASCII letters, as required by Caelum's lexer.
         self.used_names = {n.name for n in children(program)
                            if isinstance(n, (IdentifierNode, DeclarationNode, ParameterNode,
                                              FunctionNode, StructNode, FieldNode, CallNode,
@@ -73,8 +68,6 @@ class Optimizer:
     def run(self):
         self.remove_unused_functions()
         self.remove_unused_variables()
-        # Each expansion consumes a once-called function.  Recheck between
-        # expansions so subsequent call counts and bindings are up-to-date.
         while self.inline_once():
             self.recheck()
             self.remove_unused_functions()
@@ -126,8 +119,6 @@ class Optimizer:
             changed = False
 
             def clean_nested(value):
-                # InlineExpr introduces a genuine nested scope, not just a
-                # textual substitution; visit its declarations too.
                 if isinstance(value, InlineExprNode):
                     value.statements = clean(value.statements)
                     value.result = clean_nested(value.result)
@@ -198,12 +189,7 @@ class Optimizer:
 
     @staticmethod
     def supported(info):
-        """Straight-line global functions with a final rise; no global capture.
-
-        Conditional/early returns, recursion, nested calls, global writes and
-        global reads are intentionally not expanded. Keeping these calls is
-        safer than silently changing scope, effects or return control flow.
-        """
+        """Straight-line global functions with a final rise; no global capture."""
         if info.owner or not info.node.body or not isinstance(info.node.body[-1], ReturnNode):
             return False
         if any(not isinstance(n, (DeclarationNode, AssignmentNode)) for n in info.node.body[:-1]):
@@ -225,7 +211,6 @@ class Optimizer:
 
     def inline_once(self):
         counts = Counter(c for c in calls_in(self.program))
-        # Recursion includes mutual recursion, not just a direct self-call.
         def recursive(start):
             todo = list(start.calls)
             seen = set()
@@ -242,8 +227,6 @@ class Optimizer:
                     if count == 1 and self.supported(f) and not recursive(f)}
         if not eligible:
             return False
-        # Expand one site at a time; subsequent counts must use a fresh
-        # semantic graph, especially after inlining inside another function.
         target = next(f for f in self.sem.functions.values() if f in eligible)
         done = False
 
