@@ -1,93 +1,222 @@
 astro Ship ⟨
     flow ☼ hp.
+    flow ☼ energy.
+    flow ☼ heat.
+    flow ☼ shield.
+    flow ☼ charge.
 
     spark takeHit(☼ damage) -> ☼ ⟨
         hp = hp - damage.
+        when (14 - hp) / 14 != 0 ⟨
+            hp = 0.
+        ⟩
         rise hp.
     ⟩
 ⟩
 
-spark chargeLaser(☼ power) -> ☼ ⟨
-    rise power * 2.
-⟩
-
-spark raiseShield(☼ damage) -> ☼ ⟨
-    rise damage - 1.
-⟩
-
-flow Ship player = Ship⟨hp = 4⟩.
-flow Ship enemy = Ship⟨hp = 8⟩.
+flow Ship player = Ship⟨hp = 14, energy = 7, heat = 0, shield = 0, charge = 0⟩.
+flow Ship enemy = Ship⟨hp = 14, energy = 0, heat = 0, shield = 0, charge = 0⟩.
+flow ☼ fireStreak = 0.
+flow ☼ defendStreak = 0.
+flow ☼ empWindow = 0.
+flow ☼ enemyRage = 0.
 flow ☁ finished = dark.
+
+spark firePower(☼ power) -> ☼ ⟨
+    rise power + 1.
+⟩
+
+spark shieldImpact(☼ damage) -> ☼ ⟨
+    when empWindow == 1 ⟨
+        rise damage + 3.
+    ⟩
+    when enemy ~ shield == 1 ⟨
+        rise damage - 3.
+    ⟩
+    rise damage.
+⟩
 
 spark showField(Ship ally, Ship rival) -> ☼ ⟨
     recordCoordinates("+---------------------------+").
     recordCoordinates("|   PLAYER        ENEMY     |").
-    recordCoordinates("|    [^]           <=>     |").
-    recordCoordinates("|    /|\\           |      |").
+    recordCoordinates("|    [^]           <=>      |").
+    recordCoordinates("|    /|\\            |       |").
     recordCoordinates("+---------------------------+").
     recordCoordinates("PLAYER HP:").
     recordCoordinates(ally ~ hp).
+    recordCoordinates("ENERGY:").
+    recordCoordinates(ally ~ energy).
+    recordCoordinates("REACTOR HEAT:").
+    recordCoordinates(ally ~ heat).
     recordCoordinates("ENEMY HP:").
     recordCoordinates(rival ~ hp).
+    recordCoordinates("ENEMY SHIELD (0/1):").
+    recordCoordinates(rival ~ shield).
+    recordCoordinates("ENEMY LASER (0/1):").
+    recordCoordinates(rival ~ charge).
     rise 0.
 ⟩
 
-spark playTurn(☼ action) -> ☼ ⟨
+spark playTurn(☼ action, ☼ turn) -> ☼ ⟨
+    flow ☼ guarded = 0.
+    flow ☼ chargedAtStart = enemy ~ charge.
+
+    when action != 1 ⟨
+        when action != 2 ⟨
+            when action != 3 ⟨
+                recordCoordinates("INVALID ACTION: Choose 1, 2 or 3.").
+                finished = light.
+            ⟩
+        ⟩
+    ⟩
     when action == 1 ⟨
-        recordCoordinates("You fire the laser!").
-        enemy ~ takeHit(2 |> chargeLaser).
-    ⟩ otherwise ⟨
-        when action == 2 ⟨
-            recordCoordinates("You activate the shield.").
-        ⟩ otherwise ⟨
-            recordCoordinates("INVALID ACTION: Choose 1 or 2.").
+        when player ~ energy / 2 == 0 ⟨
+            recordCoordinates("INVALID ACTION: Not enough energy for Fire.").
+            finished = light.
+        ⟩
+    ⟩
+    when action == 3 ⟨
+        when player ~ energy / 3 == 0 ⟨
+            recordCoordinates("INVALID ACTION: Not enough energy for EMP.").
             finished = light.
         ⟩
     ⟩
 
     when finished == dark ⟨
-        when enemy ~ hp == 0 ⟨
-            finished = light.
-            recordCoordinates("VICTORY: Enemy ship destroyed!").
-        ⟩ otherwise ⟨
-            recordCoordinates("Enemy fires back!").
-            when action == 1 ⟨
-                player ~ takeHit(2).
-            ⟩ otherwise ⟨
-                player ~ takeHit(2 |> raiseShield).
+        when action == 1 ⟨
+            player ~ energy = player ~ energy - 2.
+            player ~ heat = player ~ heat + 3.
+            fireStreak = fireStreak + 1.
+            defendStreak = 0.
+            flow ☼ damage = 4 |> firePower |> shieldImpact.
+            enemy ~ takeHit(damage).
+            recordCoordinates("FIRE: Damage:").
+            recordCoordinates(damage).
+            empWindow = 0.
+            when fireStreak == 2 ⟨
+                when enemy ~ hp != 0 ⟨
+                    enemy ~ shield = 1.
+                    recordCoordinates("ENEMY: Shield activated.").
+                ⟩
             ⟩
-            when player ~ hp == 0 ⟨
+        ⟩ otherwise ⟨
+            when action == 2 ⟨
+                guarded = 1.
+                player ~ energy = player ~ energy + 4.
+                when player ~ energy / 9 != 0 ⟨
+                    player ~ energy = 8.
+                ⟩
+                player ~ heat = player ~ heat - 4.
+                when (8 - player ~ heat) / 8 != 0 ⟨
+                    player ~ heat = 0.
+                ⟩
+                fireStreak = 0.
+                defendStreak = defendStreak + 1.
+                recordCoordinates("DEFEND: Energy +4, heat -4.").
+                when defendStreak == 2 ⟨
+                    enemy ~ charge = 1.
+                    recordCoordinates("ENEMY: Charging heavy laser.").
+                ⟩
+            ⟩ otherwise ⟨
+                player ~ energy = player ~ energy - 3.
+                player ~ heat = player ~ heat + 1.
+                enemy ~ shield = 0.
+                enemy ~ takeHit(1).
+                empWindow = 1.
+                enemyRage = 2.
+                fireStreak = 0.
+                defendStreak = 0.
+                recordCoordinates("EMP: Shield disabled, next Fire +3.").
+                recordCoordinates("ENEMY: Aggressive response.").
+            ⟩
+        ⟩
+
+        when player ~ heat / 8 != 0 ⟨
+            recordCoordinates("DEFEAT: Reactor meltdown.").
+            finished = light.
+        ⟩
+
+        when finished == dark ⟨
+            when enemy ~ hp == 0 ⟨
+                when (14 - player ~ hp) / 10 != 0 ⟨
+                    recordCoordinates("VICTORY: Barely survived!").
+                ⟩ otherwise ⟨
+                    recordCoordinates("VICTORY: Enemy destroyed!").
+                ⟩
                 finished = light.
-                recordCoordinates("DEFEAT: Your ship was destroyed.").
+            ⟩ otherwise ⟨
+                flow ☼ retaliation = 2.
+                when enemyRage != 0 ⟨
+                    retaliation = retaliation + 2.
+                    enemyRage = enemyRage - 1.
+                ⟩
+                when chargedAtStart == 1 ⟨
+                    retaliation = retaliation + 4.
+                    enemy ~ charge = 0.
+                    recordCoordinates("ENEMY: Heavy laser fired!").
+                ⟩
+                when turn == 5 ⟨
+                    retaliation = retaliation + 5.
+                    recordCoordinates("ENEMY: Final strike!").
+                ⟩ otherwise ⟨
+                    recordCoordinates("ENEMY: Return fire.").
+                ⟩
+                when guarded == 1 ⟨
+                    retaliation = retaliation - 3.
+                    when retaliation == -1 ⟨
+                        retaliation = 0.
+                    ⟩
+                ⟩
+                player ~ takeHit(retaliation).
+                recordCoordinates("DAMAGE TAKEN:").
+                recordCoordinates(retaliation).
+                when player ~ hp == 0 ⟨
+                    recordCoordinates("DEFEAT: Ship destroyed.").
+                    finished = light.
+                ⟩
             ⟩
         ⟩
     ⟩
     showField(player, enemy).
+    when finished == dark ⟨
+        when turn == 5 ⟨
+            recordCoordinates("DEFEAT: Enemy survived five rounds.").
+            finished = light.
+        ⟩
+    ⟩
     rise 0.
 ⟩
 
 recordCoordinates("CAELUM SPACE BATTLE").
-recordCoordinates("Destroy the enemy within three rounds.").
-recordCoordinates("1 = ATTACK, 2 = DEFEND").
+recordCoordinates("Destroy the enemy within five rounds.").
+recordCoordinates("1 FIRE (-2 energy, +3 heat)").
+recordCoordinates("2 DEFEND (+4 energy, -4 heat)").
+recordCoordinates("3 EMP (-3 energy, next Fire +3)").
+recordCoordinates("Heat 8 = meltdown. Final strike: +5.").
 showField(player, enemy).
 
 recordCoordinates("ROUND 1").
-recordCoordinates("Your action (1 or 2):").
-playTurn(lookThroughTelescope()).
+recordCoordinates("Your action (1/2/3):").
+playTurn(lookThroughTelescope(), 1).
 
 when finished == dark ⟨
     recordCoordinates("ROUND 2").
-    recordCoordinates("Your action (1 or 2):").
-    playTurn(lookThroughTelescope()).
+    recordCoordinates("Your action (1/2/3):").
+    playTurn(lookThroughTelescope(), 2).
 ⟩
-
 when finished == dark ⟨
     recordCoordinates("ROUND 3").
-    recordCoordinates("Your action (1 or 2):").
-    playTurn(lookThroughTelescope()).
+    recordCoordinates("Your action (1/2/3):").
+    playTurn(lookThroughTelescope(), 3).
 ⟩
-
 when finished == dark ⟨
-    recordCoordinates("DEFEAT: Enemy ship survived three rounds.").
+    recordCoordinates("ROUND 4").
+    recordCoordinates("Your action (1/2/3):").
+    playTurn(lookThroughTelescope(), 4).
+⟩
+when finished == dark ⟨
+    recordCoordinates("ROUND 5").
+    recordCoordinates("Your action (1/2/3):").
+    playTurn(lookThroughTelescope(), 5).
 ⟩
 recordCoordinates("GAME OVER").
