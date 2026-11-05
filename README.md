@@ -1,11 +1,11 @@
-# Caelum Compiler — Stage 3 (Tasks 1–2: Piping and AST Optimization)
+# Caelum Compiler — Stage 3 (Piping, AST Optimization, and Space Battle)
 
-Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation. Stage 3 Task 1 adds typed, left-to-right piping (`|>`). Task 2 adds an optional checked-AST optimizer with dead-variable elimination, dead-function elimination, and limited function inlining.
+Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation. Stage 3 Task 1 adds typed, left-to-right piping (`|>`). Task 2 adds an optional checked-AST optimizer with dead-variable elimination, dead-function elimination, and limited function inlining. Task 3 adds the small interactive Space Battle game.
 
 ## Prerequisites
 
 - Python 3.10+ and `llvmlite` (`python3 -m pip install llvmlite`).
-- LLVM-compatible `clang` for building the generated IR into executables.
+- LLVM tools `llc` and `clang` for building the generated IR into executables.
 - No parser generator: the lexer is hand-written and byte-oriented, and the parser is recursive descent.
 
 ## Build, run, and inspect
@@ -226,8 +226,51 @@ The original `call` invokes the separate `identity` function. After optimization
 
 The compiler declares all functions before generating function bodies. User functions use names such as `caelum.fn.twice`; members use `caelum.method.Star.increase` with a pointer to the receiver as the first argument. Named structs use LLVM identified struct types. Each field access uses the field's index from the semantic structure table to generate `getelementptr`; object construction has one value per field. Branching uses `if/else` basic blocks. Arithmetic overflow checks use `llvm.sadd/ssub/smul.with.overflow` intrinsic declarations and explicit branches on their flags. The `scanf` and `printf` functions are declared, with their format strings stored as global constants.
 
+## Space Battle (Stage 3 Task 3)
+
+Space Battle is a small console game written in Caelum. You control a spaceship and try to defeat an enemy within three rounds. The game shows a simple battlefield and the health of both ships. Enter `1` to attack or `2` to defend. An invalid choice ends the game.
+
+The game uses an `astro Ship` structure with a `takeHit()` method, `spark` functions, `when` / `otherwise`, `lookThroughTelescope()` for input, and `recordCoordinates()` for output. Piping is used in the main battle logic: `2 |> chargeLaser` calculates attack damage, and `2 |> raiseShield` reduces damage when defending.
+
+### Build and run
+
+Generate LLVM IR, build a native program with `llc` and `clang`, then run it:
+
+```bash
+python3 compiler.py programs/space_battle.txt space_battle.ll
+llc -filetype=obj space_battle.ll -o space_battle.o
+clang space_battle.o -o space_battle
+./space_battle
+```
+
+To compile with AST optimization enabled, use:
+
+```bash
+python3 compiler.py --optimize programs/space_battle.txt space_battle_opt.ll
+llc -filetype=obj space_battle_opt.ll -o space_battle_opt.o
+clang space_battle_opt.o -o space_battle_opt
+```
+
+### Recorded game sessions
+
+The game has three recorded sessions:
+
+- **Win:** attack twice to destroy the enemy (`space_battle_win`).
+- **Lose:** attack once, then defend twice (`space_battle_lose`).
+- **Invalid action:** enter `9` instead of `1` or `2` (`space_battle_invalid`).
+
+Each `.in` file contains the player's choices. Its matching `.expected` file contains the exact output, including prompts. Run the sessions with:
+
+```bash
+./space_battle < programs/space_battle_win.in
+./space_battle < programs/space_battle_lose.in
+./space_battle < programs/space_battle_invalid.in
+```
+
+Run all automated tests with `python3 run_tests.py`. The test script checks each game's output against its `.expected` file, both with and without `--optimize`.
+
 ## Tests and submission
 
-`python3 run_tests.py` runs all original Stage 1 AST golden tests unchanged, the Stage 2 semantic and runtime tests, four native Piping tests and six invalid Piping tests. It also tests the optimizer's expected AST and native output for all thirteen programs, plus two preservation-of-runtime-error cases. All previous suites are repeated with `--optimize`, checking error diagnostics and side-effect preservation. It reports every failure and exits nonzero on a mismatch.
+`python3 run_tests.py` runs all original Stage 1 AST golden tests unchanged, the Stage 2 semantic and runtime tests, four native Piping tests and six invalid Piping tests. It also tests the optimizer's expected AST and native output for all thirteen programs, plus two preservation-of-runtime-error cases. All previous suites are repeated with `--optimize`, checking error diagnostics and side-effect preservation. It also checks three recorded Space Battle sessions with and without optimization. It reports every failure and exits nonzero on a mismatch.
 
-The local `stage3` branch is created from `stage2` and contains only local commits; it has not been pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions. The Stage 3 assignment separately requires `ai_usage_3.txt` at submission; this file has not been created or modified in Tasks 1–2.
+The local `stage3` branch is created from `stage2` and contains only local commits; it has not been pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions. The Stage 3 assignment separately requires `ai_usage_3.txt` at submission; it is not included yet.
