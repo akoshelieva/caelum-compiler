@@ -183,6 +183,58 @@ def optimizer_runtime_error(path):
     after=compile_run(path,runtime_error=True,optimize=True)
     return before[0] and after[0],repr((before[1],after[1]))
 
+def compiler_io_regression():
+    """Failures must be one line and must never leave a stale or partial IR file."""
+    source=ROOT/'examples'/'example.caelum'
+    with TemporaryDirectory() as directory:
+        folder=Path(directory)
+        for optimize in (False,True):
+            flags=('--optimize',) if optimize else ()
+            missing=folder/'missing.caelum'
+            old=folder/'old.ll'
+            old.write_text('stale LLVM IR',encoding='utf-8')
+            unreadable=invoke(missing,old,*flags)
+            if not (unreadable.returncode!=0 and not unreadable.stdout and
+                    unreadable.stderr.startswith('compilation error: line 1:1:') and
+                    unreadable.stderr.count('\n')==1 and not old.exists()):
+                return False,f'missing input left stale output: {unreadable!r}'
+
+            output_dir=folder/'output_dir'
+            output_dir.mkdir(exist_ok=True)
+            invalid_output=invoke(source,output_dir,*flags)
+            if not (invalid_output.returncode!=0 and not invalid_output.stdout and
+                    invalid_output.stderr.startswith('compilation error: line 1:1:') and
+                    invalid_output.stderr.count('\n')==1 and output_dir.is_dir()):
+                return False,f'directory output produced traceback: {invalid_output!r}'
+
+            in_place=folder/'source.caelum'
+            original=source.read_bytes()
+            in_place.write_bytes(original)
+            same_path=invoke(in_place,in_place,*flags)
+            if not (same_path.returncode!=0 and not same_path.stdout and
+                    'input and output paths must be different' in same_path.stderr and
+                    in_place.read_bytes()==original):
+                return False,f'input was overwritten or removed: {same_path!r}'
+
+            ir=folder/'valid.ll'
+            correct=invoke(source,ir,*flags)
+            if correct.returncode or correct.stderr or not ir.read_text(encoding='utf-8').startswith('; ModuleID'):
+                return False,f'normal compilation failed: {correct!r}'
+
+            invalid_destination=folder/'missing_parent'/'module.ll'
+            failed_write=invoke(source,invalid_destination,*flags)
+            if not (failed_write.returncode!=0 and not failed_write.stdout and
+                    failed_write.stderr.startswith('compilation error: line 1:1:') and
+                    failed_write.stderr.count('\n')==1 and not invalid_destination.exists()):
+                return False,f'unwritable output path not handled: {failed_write!r}'
+
+        wrong_args=invoke('--nonsense',source,folder/'other.ll')
+        if not (wrong_args.returncode!=0 and not wrong_args.stdout and
+                wrong_args.stderr.startswith('compilation error: line 1:1:') and
+                wrong_args.stderr.count('\n')==1):
+            return False,f'invalid CLI flags not formatted: {wrong_args!r}'
+    return True,'missing input, directory output, input protection, bad paths, both modes'
+
 def main():
     suites=[('stage1-valid',TESTS/'valid',lambda x:legacy(x,True)),
             ('stage1-invalid',TESTS/'invalid',lambda x:legacy(x,False)),
@@ -220,6 +272,11 @@ def main():
     try:passed,detail=space_battle_strategy_sweep()
     except Exception as exc:passed=False;detail=f'{type(exc).__name__}: {exc}'
     print(('PASS' if passed else 'FAIL')+' space-battle/strategy-sweep'+(': '+detail if not passed else ' ('+detail+')'))
+    failed+=not passed
+    total+=1
+    try:passed,detail=compiler_io_regression()
+    except Exception as exc:passed=False;detail=f'{type(exc).__name__}: {exc}'
+    print(('PASS' if passed else 'FAIL')+' compiler/io-regressions'+(': '+detail if not passed else ' ('+detail+')'))
     failed+=not passed
     print(f'\n{total-failed}/{total} tests passed')
     return int(bool(failed))
