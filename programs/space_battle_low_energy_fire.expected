@@ -1,0 +1,92 @@
+CAELUM SPACE BATTLE
+Destroy the enemy within five rounds.
+1 FIRE (-2 energy, +3 heat)
+2 DEFEND (+4 energy, -4 heat)
+3 EMP (-3 energy, next Fire +3)
+Heat 8 = meltdown. Final strike: +5.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+14
+ENERGY:
+7
+REACTOR HEAT:
+0
+ENEMY HP:
+14
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 1
+Your action (1/2/3):
+EMP: Shield disabled, next Fire +3.
+ENEMY: Aggressive response.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+4
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+10
+ENERGY:
+4
+REACTOR HEAT:
+1
+ENEMY HP:
+13
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 2
+Your action (1/2/3):
+EMP: Shield disabled, next Fire +3.
+ENEMY: Aggressive response.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+4
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+6
+ENERGY:
+1
+REACTOR HEAT:
+2
+ENEMY HP:
+12
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 3
+Your action (1/2/3):
+INVALID ACTION: Not enough energy for Fire.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+6
+ENERGY:
+1
+REACTOR HEAT:
+2
+ENEMY HP:
+12
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+GAME OVER

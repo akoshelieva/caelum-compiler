@@ -1,0 +1,141 @@
+CAELUM SPACE BATTLE
+Destroy the enemy within five rounds.
+1 FIRE (-2 energy, +3 heat)
+2 DEFEND (+4 energy, -4 heat)
+3 EMP (-3 energy, next Fire +3)
+Heat 8 = meltdown. Final strike: +5.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+14
+ENERGY:
+7
+REACTOR HEAT:
+0
+ENEMY HP:
+14
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 1
+Your action (1/2/3):
+EMP: Shield disabled, next Fire +3.
+ENEMY: Aggressive response.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+4
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+10
+ENERGY:
+4
+REACTOR HEAT:
+1
+ENEMY HP:
+13
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 2
+Your action (1/2/3):
+DEFEND: Energy +4, heat -4.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+1
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+9
+ENERGY:
+8
+REACTOR HEAT:
+0
+ENEMY HP:
+13
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 3
+Your action (1/2/3):
+FIRE: Damage:
+8
+ENEMY: Return fire.
+DAMAGE TAKEN:
+2
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+7
+ENERGY:
+6
+REACTOR HEAT:
+3
+ENEMY HP:
+5
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 4
+Your action (1/2/3):
+EMP: Shield disabled, next Fire +3.
+ENEMY: Aggressive response.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+4
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+3
+ENERGY:
+3
+REACTOR HEAT:
+4
+ENEMY HP:
+4
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 5
+Your action (1/2/3):
+FIRE: Damage:
+8
+VICTORY: Barely survived!
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+3
+ENERGY:
+1
+REACTOR HEAT:
+7
+ENEMY HP:
+0
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+GAME OVER
