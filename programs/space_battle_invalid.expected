@@ -1,0 +1,25 @@
+CAELUM SPACE BATTLE
+Destroy the enemy within three rounds.
+1 = ATTACK, 2 = DEFEND
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>     |
+|    /|\           |      |
++---------------------------+
+PLAYER HP:
+4
+ENEMY HP:
+8
+ROUND 1
+Your action (1 or 2):
+INVALID ACTION: Choose 1 or 2.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>     |
+|    /|\           |      |
++---------------------------+
+PLAYER HP:
+4
+ENEMY HP:
+8
+GAME OVER

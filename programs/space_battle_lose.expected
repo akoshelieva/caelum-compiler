@@ -1,0 +1,53 @@
+CAELUM SPACE BATTLE
+Destroy the enemy within three rounds.
+1 = ATTACK, 2 = DEFEND
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>     |
+|    /|\           |      |
++---------------------------+
+PLAYER HP:
+4
+ENEMY HP:
+8
+ROUND 1
+Your action (1 or 2):
+You fire the laser!
+Enemy fires back!
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>     |
+|    /|\           |      |
++---------------------------+
+PLAYER HP:
+2
+ENEMY HP:
+4
+ROUND 2
+Your action (1 or 2):
+You activate the shield.
+Enemy fires back!
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>     |
+|    /|\           |      |
++---------------------------+
+PLAYER HP:
+1
+ENEMY HP:
+4
+ROUND 3
+Your action (1 or 2):
+You activate the shield.
+Enemy fires back!
+DEFEAT: Your ship was destroyed.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>     |
+|    /|\           |      |
++---------------------------+
+PLAYER HP:
+0
+ENEMY HP:
+4
+GAME OVER

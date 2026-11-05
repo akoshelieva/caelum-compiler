@@ -47,7 +47,7 @@ def semantic_invalid(path,optimize=False):
               and result.stderr.count('\n')==1 and not out.exists())
     return good,repr(result.stderr)
 
-def compile_run(path,runtime_error=False,optimize=False):
+def compile_run(path,runtime_error=False,optimize=False,input_file=None,expected_file=None):
     if CLANG is None:return False,'clang is not installed'
     with TemporaryDirectory() as d:
         d=Path(d);ir=d/'program.ll';exe=d/'program'
@@ -56,15 +56,16 @@ def compile_run(path,runtime_error=False,optimize=False):
             return False,'compile: '+repr(result.stderr)
         built=subprocess.run([CLANG,'-Wno-override-module',str(ir),'-o',str(exe)],capture_output=True,text=True,timeout=12)
         if built.returncode:return False,'clang: '+built.stderr
-        input_file=path.with_suffix('.in')
-        stdin=input_file.read_text(encoding='utf8') if input_file.exists() else ''
+        session_input=input_file if input_file is not None else path.with_suffix('.in')
+        stdin=session_input.read_text(encoding='utf8') if session_input.exists() else ''
         ran=subprocess.run([str(exe)],input=stdin,stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE,text=True,timeout=8)
         if runtime_error:
             expected=path.with_suffix('.stderr').read_text(encoding='utf8')
             good=(ran.returncode!=0 and ran.stdout=='' and ran.stderr==expected)
         else:
-            expected=path.with_suffix('.expected').read_text(encoding='utf8')
+            golden=expected_file if expected_file is not None else path.with_suffix('.expected')
+            expected=golden.read_text(encoding='utf8')
             good=(ran.returncode==0 and ran.stderr=='' and ran.stdout==expected)
         return good,repr((ran.returncode,ran.stdout,ran.stderr))
 
@@ -72,6 +73,12 @@ def stage1_codegen(path,optimize=False):
     with TemporaryDirectory() as d:
         result=invoke('--optimize',path,Path(d)/'stage1.ll') if optimize else invoke(path,Path(d)/'stage1.ll')
         return result.returncode==0 and result.stderr=='' ,repr(result.stderr)
+
+def space_battle_case(input_file,optimize=False):
+    """Play a recorded game session and compare its exact console transcript."""
+    source=ROOT/'programs'/'space_battle.txt'
+    return compile_run(source,optimize=optimize,input_file=input_file,
+                       expected_file=input_file.with_suffix('.expected'))
 
 def optimizer_case(path):
     """Golden AST and identical native behavior with / without optimization."""
@@ -100,7 +107,9 @@ def main():
             ('piping-valid',TESTS/'piping_valid',compile_run),
             ('piping-invalid',TESTS/'piping_invalid',semantic_invalid),
             ('optimizer',TESTS/'optimizer',optimizer_case),
-            ('optimizer-runtime-error',TESTS/'optimizer_errors',lambda x:optimizer_runtime_error(x))]
+            ('optimizer-runtime-error',TESTS/'optimizer_errors',lambda x:optimizer_runtime_error(x)),
+            ('space-battle',ROOT/'programs',space_battle_case),
+            ('optimized-space-battle',ROOT/'programs',lambda x:space_battle_case(x,True))]
     # Run all earlier stages with the new flag too, including negative cases.
     suites += [('optimized-stage1-valid',TESTS/'valid',lambda x:legacy(x,True,True)),
                ('optimized-stage1-invalid',TESTS/'invalid',lambda x:legacy(x,False,True)),
@@ -112,7 +121,10 @@ def main():
                ('optimized-piping-invalid',TESTS/'piping_invalid',lambda x:semantic_invalid(x,True))]
     total=failed=0
     for name,folder,fn in suites:
-        for path in sorted(folder.rglob('*.caelum') if name=='optimizer' else folder.glob('*.caelum')):
+        files=(folder.rglob('*.caelum') if name=='optimizer' else
+               folder.glob('space_battle_*.in') if 'space-battle' in name else
+               folder.glob('*.caelum'))
+        for path in sorted(files):
             total+=1
             try:passed,detail=fn(path)
             except Exception as exc:passed=False;detail=f'{type(exc).__name__}: {exc}'
