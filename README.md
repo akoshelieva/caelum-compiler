@@ -1,6 +1,6 @@
-# Caelum Compiler — Stage 3 (Task 1: Piping)
+# Caelum Compiler — Stage 3 (Tasks 1–2: Piping and AST Optimization)
 
-Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation. Stage 3 Task 1 adds typed, left-to-right piping (`|>`).
+Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation. Stage 3 Task 1 adds typed, left-to-right piping (`|>`). Task 2 adds an optional checked-AST optimizer with dead-variable elimination, dead-function elimination, and limited function inlining.
 
 ## Prerequisites
 
@@ -13,12 +13,15 @@ Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is 
 ```bash
 python3 compiler.py --ast examples/example.caelum
 python3 compiler.py examples/example.caelum output.ll
+python3 compiler.py --optimize examples/example.caelum output.ll
+python3 compiler.py --ast --optimize examples/example.caelum
+python3 compiler.py examples/example.caelum output.ll --optimize
 clang output.ll -o caelum-program
 ./caelum-program
 python3 run_tests.py
 ```
 
-`--ast` runs lexical and syntax checks only, preserving all Stage 1 golden files, including their error positions and AST nodes. Normal compilation runs the separate semantic analysis **before** LLVM generation. The compiler writes the builder-printed module to `output.ll`, not handwritten IR. No output file is left after a compilation error.
+By default, `--ast` runs lexical and syntax checks only, preserving all Stage 1 golden files, including their error positions and AST nodes. When combined with `--optimize`, it first performs semantic checking and then prints **the optimized AST**. `--optimize` may appear anywhere in the argument list (before, between, or after file paths; also before or after `--ast`). Normal compilation runs the separate semantic analysis **before** LLVM generation. The compiler writes the builder-printed module to `output.ll`, not handwritten IR. No output file is left after a compilation error.
 
 Errors in lexical, syntactic, and semantic checks use **one line on stderr** and a nonzero status:
 
@@ -171,12 +174,60 @@ recordCoordinates("Distance", n, light).
 
 `recordCoordinates()` accepts **one or more** arguments and prints each value immediately followed by a newline, before evaluating the next argument. Supported values: `☼` and `☽` in decimal (`%d`, `%lld`); booleans as `true` / `false`; literal strings without quotes; and `astro` objects recursively in declaration field order, for instance `Star⟨id=1, brightness=100⟩`. Strings have UTF-8 and `\n`, `\t`, `\"`, `\\` escapes. Strings cannot be variables, fields, function parameters or return types.
 
+## AST optimizer: `--optimize` (Stage 3 Task 2)
+
+The optimizer lives in `optimizer.py` and runs **after** `Semantic(tree).analyze()` and **before** `LLVMGenerator(sem).generate()`. The source language's lexer, parser, and grammar are unchanged. Optimized ASTs are **rechecked** after structural changes so that symbol identity, expression types, effects, callable targets and function tables are current. Without `--optimize` the compiler and Stage 1 AST output retain their original behavior. Optimizations operate only on syntax/AST nodes; LLVM is still emitted exclusively using the existing `llvmlite.ir.IRBuilder` and module APIs.
+
+1. **Unused variables (1 point).** Identify read references using semantic `Symbol` identity rather than spelling, so nested block scopes and shadowing are handled. Remove dead `flow`/`calm`/`fixed` declarations and writes to them, repeating passes until no more can be removed (e.g., removing `second = first` exposes `first` as unused). An initializer/RHS containing a function call, Piping, `lookThroughTelescope()`, a member call, or potentially trapping arithmetic is **retained as an expression statement**, in its original position and evaluation order. Thus read, print, mutation, division-by-zero and overflow behavior cannot disappear merely because the assigned value is unused. Dead assignment targets are simple variables, not structure fields; structure-field assignments are retained.
+2. **Unused functions (1 point).** Compute reachability from top-level executable expressions, following the complete, type-checked call graph. Remove all unreachable global `spark` functions and unreachable `astro` methods; transitive orphan chains disappear together. Re-run semantic analysis after deletion. No dynamic function pointers exist in Caelum, so all callable targets are statically known.
+3. **Inlining (2 points).** For a global, nonrecursive `spark` called at **exactly one syntactic call site**, copy its straight-line body into an optimizer-only `InlineExpr` AST node. Every parameter becomes a scoped local declaration initialized from its corresponding argument in left-to-right order; the final `rise` expression becomes the value of the inlined expression. All parameter and local binding names are alpha-renamed to fresh Caelum-legal ASCII identifiers, avoiding collisions with caller variables and with each other. Nested calls in the caller, including Piping stages, are supported; a targeted pipe is lowered to equivalent left-to-right nested AST calls. Inlining and dead-function elimination run repeatedly, with semantic rechecking between expansions. The inlined function's no-longer-used definition is removed.
+
+**Inlining boundaries:** only global functions whose body has zero or more straight-line local variable declarations/simple local or parameter assignments, followed by exactly one final `rise`, are expanded. The candidate body must not read or assign global variables or implicit `astro` fields, or itself contain calls or pipelines. Recursive and mutually recursive functions, methods, conditionals/early `rise` inside `when`, function bodies with global effects, and bodies with nested calls are **deliberately left as calls**. Such functions remain perfectly valid and execute normally. These restrictions protect global-name resolution, member receiver context, branch/return semantics and side-effect ordering; they are not general language limitations. An optimized call can still contain side-effectful argument expressions, evaluated once in their original order.
+
+**Example — builder-generated IR before/after inlining** (`tests/optimizer/inlining/identity.caelum`; main-body excerpts):
+
+Before (`python3 compiler.py tests/optimizer/inlining/identity.caelum output.ll`):
+
+```llvm
+define i32 @"main"()
+{
+entry:
+  %".2" = call i32 @"caelum.fn.identity"(i32 7)
+  %".3" = getelementptr inbounds [3 x i8], [3 x i8]* @"caelum.str.0", i32 0, i32 0
+  %".4" = call i32 (i8*, ...) @"printf"(i8* %".3", i32 %".2")
+  %".5" = getelementptr inbounds [2 x i8], [2 x i8]* @"caelum.str.1", i32 0, i32 0
+  %".6" = call i32 (i8*, ...) @"printf"(i8* %".5")
+  ret i32 0
+}
+```
+
+After (`python3 compiler.py tests/optimizer/inlining/identity.caelum output.ll --optimize`):
+
+```llvm
+define i32 @"main"()
+{
+entry:
+  %"inlineA.addr" = alloca i32
+  store i32 7, i32* %"inlineA.addr"
+  %".3" = load i32, i32* %"inlineA.addr"
+  %".4" = getelementptr inbounds [3 x i8], [3 x i8]* @"caelum.str.0", i32 0, i32 0
+  %".5" = call i32 (i8*, ...) @"printf"(i8* %".4", i32 %".3")
+  %".6" = getelementptr inbounds [2 x i8], [2 x i8]* @"caelum.str.1", i32 0, i32 0
+  %".7" = call i32 (i8*, ...) @"printf"(i8* %".6")
+  ret i32 0
+}
+```
+
+The original `call` invokes the separate `identity` function. After optimization, `identity` no longer has a definition or a call; the `inlineA` alloca/store/load represents its by-value parameter and the following `printf` receives the result directly. Both outputs print `7` and a newline. The optimizer did not assemble any LLVM text; the excerpts come directly from the same LLVM builder used for unoptimized compilation.
+
+**Mechanical verification:** `tests/optimizer/` contains 13 programs: four unused-variable cases, two unused-function cases, and seven inlining/guard cases (including recursion and global-read non-inline checks, dead locals and input evaluation order). Each has an exact `.ast.expected` for `--ast --optimize` and a native `.expected` output. The test script checks the same output both with and without the optimization flag, and tests both placements of `--optimize` with `--ast`. Two extra `tests/optimizer_errors/` programs prove that removed assignments cannot suppress input validation or division-by-zero failures. The entire preexisting Stage 1, Stage 2 and Task 1 suite is run a second time with `--optimize` (including errors, native execution and LLVM compilation).
+
 ## LLVM implementation
 
 The compiler declares all functions before generating function bodies. User functions use names such as `caelum.fn.twice`; members use `caelum.method.Star.increase` with a pointer to the receiver as the first argument. Named structs use LLVM identified struct types. Each field access uses the field's index from the semantic structure table to generate `getelementptr`; object construction has one value per field. Branching uses `if/else` basic blocks. Arithmetic overflow checks use `llvm.sadd/ssub/smul.with.overflow` intrinsic declarations and explicit branches on their flags. The `scanf` and `printf` functions are declared, with their format strings stored as global constants.
 
 ## Tests and submission
 
-`python3 run_tests.py` runs the 47 original Stage 1 AST golden tests unchanged, checks that all Stage 1 valid cases still compile to LLVM, checks Stage 2 semantic-invalid programs and one-line diagnostics, builds and executes end-to-end programs with `clang`, verifies exact stdout, supplies `.in` files for stdin tests, and checks runtime error stderr and exit status. It also runs four valid Piping programs as native binaries and checks six invalid Piping cases with exact one-line diagnostics and no output file. It reports every failure and exits nonzero when any test fails.
+`python3 run_tests.py` runs all original Stage 1 AST golden tests unchanged, the Stage 2 semantic and runtime tests, four native Piping tests and six invalid Piping tests. It also tests the optimizer's expected AST and native output for all thirteen programs, plus two preservation-of-runtime-error cases. All previous suites are repeated with `--optimize`, checking error diagnostics and side-effect preservation. It reports every failure and exits nonzero on a mismatch.
 
-The local `stage3` branch is created from `stage2` and contains only local commits; it has not been pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions. The Stage 3 assignment separately requires `ai_usage_3.txt` at submission; this file has not been created or modified in Task 1.
+The local `stage3` branch is created from `stage2` and contains only local commits; it has not been pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions. The Stage 3 assignment separately requires `ai_usage_3.txt` at submission; this file has not been created or modified in Tasks 1–2.
