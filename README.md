@@ -228,49 +228,86 @@ The compiler declares all functions before generating function bodies. User func
 
 ## Space Battle (Stage 3 Task 3)
 
-Space Battle is a small console game written in Caelum. You control a spaceship and try to defeat an enemy within three rounds. The game shows a simple battlefield and the health of both ships. Enter `1` to attack or `2` to defend. An invalid choice ends the game.
+`programs/space_battle.txt` is a deterministic, five-round tactical console game implemented **entirely in Caelum**. It uses `astro Ship` and its `takeHit` member function, global `spark` helpers, `when`/`otherwise`, `lookThroughTelescope()` for one numeric action per round, `recordCoordinates()` for the 29-character-wide ASCII field and status, and the Piping operator for the central Fire damage calculation (`4 |> firePower |> shieldImpact`). There are no loops, random numbers or changes to the compiler. A `spark playTurn(action, turn)` function contains all turn rules; five guarded calls implement the round limit.
 
-The game uses an `astro Ship` structure with a `takeHit()` method, `spark` functions, `when` / `otherwise`, `lookThroughTelescope()` for input, and `recordCoordinates()` for output. Piping is used in the main battle logic: `2 |> chargeLaser` calculates attack damage, and `2 |> raiseShield` reduces damage when defending.
+### Rules and balance
 
-### Build and run
+Both ships start with **14 HP**. The player starts with **7 energy** (maximum 8) and **0 reactor heat**; the enemy begins with its shield and heavy laser inactive. Enter one of three actions:
 
-Generate LLVM IR, build a native program with `llc` and `clang`, then run it:
+| Action | Cost and immediate effect | Tactical use |
+| --- | --- | --- |
+| `1` Fire | Costs 2 energy, adds 3 heat, hits for 5 HP (or 2 against an active shield) | Main damage source |
+| `2` Defend / Recharge | Restores 4 energy up to 8, removes 4 heat down to 0, reduces the current enemy hit by 3 (minimum 0) | Sustain and prevent meltdown |
+| `3` EMP | Costs 3 energy, adds 1 heat, deals 1 HP, disables the enemy shield; the **next Fire** deals 3 extra damage and bypasses any shield | Break a shield and set up a stronger attack |
+
+The reactor melts down when heat reaches **8**; this ends the game immediately, even if that same attack reduced the enemy's HP to zero. Repeated Fire alone therefore fails on the third shot. Invalid choices (anything other than 1, 2 or 3), or actions attempted without enough energy, print an explicit message and end the session **without consuming resources or granting the enemy a turn**. No extra menu or repeated-input mechanic is required.
+
+The enemy reacts deterministically to **previous actions and the current state**:
+
+- Its normal counterattack deals 2 damage. After two consecutive Fire actions, it raises a shield that reduces later Fire damage by 3, until EMP disables it.
+- After two consecutive Defend actions, it charges its heavy laser. The charge is visible in the status panel and adds 4 damage to its next counterattack. Defending against that blast still reduces damage by 3.
+- After an EMP, it becomes aggressive: the next two counterattacks (including the immediate response to EMP) gain 2 damage.
+- If still alive after the player's action on **round 5**, it makes a final strike dealing an **additional 5 damage**, plus any pending heavy-laser and aggression bonuses.
+
+Every turn prints the two ASCII ships, player HP / energy / reactor heat, and enemy HP / shield / charge. A victory ends immediately when enemy HP reaches zero. **Close victory** (`VICTORY: Barely survived!`) means winning with 1–4 HP; otherwise it is a normal victory. Losing conditions: player HP reaches zero, reactor meltdown, or enemy surviving all five rounds. The final strike can also destroy the player's ship during round 5.
+
+Caelum does not yet have `<`, `>`, or `<=` operators; the game uses **bounded integer-division checks**, without changing the language. For example `energy / 2 == 0` detects fewer than 2 energy when energy is nonnegative, and the `Ship.takeHit` method clamps HP at zero using `(14 - hp) / 14 != 0` within the game's known HP/damage bounds. The stats never leave those documented ranges during a valid game. The script tests those assumptions across all 243 five-action strategies.
+
+### Build and run (WSL / Linux x86-64)
+
+Compile LLVM IR, emit an object with `llc` and link a native executable with `clang`:
 
 ```bash
 python3 compiler.py programs/space_battle.txt space_battle.ll
-llc -filetype=obj space_battle.ll -o space_battle.o
-clang space_battle.o -o space_battle
+llc -mtriple=x86_64-pc-linux-gnu -filetype=obj space_battle.ll -o space_battle.o
+clang -no-pie space_battle.o -o space_battle
 ./space_battle
 ```
 
-To compile with AST optimization enabled, use:
+The optimized build produces the **same console output** for every action sequence:
 
 ```bash
 python3 compiler.py --optimize programs/space_battle.txt space_battle_opt.ll
-llc -filetype=obj space_battle_opt.ll -o space_battle_opt.o
-clang space_battle_opt.o -o space_battle_opt
+llc -mtriple=x86_64-pc-linux-gnu -filetype=obj space_battle_opt.ll -o space_battle_opt.o
+clang -no-pie space_battle_opt.o -o space_battle_opt
+./space_battle_opt
 ```
 
-### Recorded game sessions
+The automated test runner uses those exact `llc` flags when `llc` is installed. In environments lacking `llc`, it emits an x86-64 object from the same generated LLVM IR using `clang -target x86_64-pc-linux-gnu -c` and then still links with `clang -no-pie`.
 
-The game has three recorded sessions:
+### Recorded sessions and deterministic strategies
 
-- **Win:** attack twice to destroy the enemy (`space_battle_win`).
-- **Lose:** attack once, then defend twice (`space_battle_lose`).
-- **Invalid action:** enter `9` instead of `1` or `2` (`space_battle_invalid`).
+Each `programs/space_battle_*.in` file contains the numeric choices (one per line), and its `.expected` file contains the **full exact output**, including the board, stats, prompts and ending. Examples:
 
-Each `.in` file contains the player's choices. Its matching `.expected` file contains the exact output, including prompts. Run the sessions with:
+| Session | Input actions | Expected behavior |
+| --- | --- | --- |
+| `space_battle_win` | `1 2 1 1` | Normal victory on round 4, **without EMP** |
+| `space_battle_win_emp` | `1 3 1` | EMP-assisted victory on round 3 |
+| `space_battle_win_shield_break` | `1 1 2 3 1` | Enemy raises shield, EMP disables it, final Fire wins |
+| `space_battle_win_close` | `3 2 3 1 1` | Victory with very little player HP |
+| `space_battle_lose` | `1 1 2 1 3` | Ship destroyed by enemy's round-5 final strike |
+| `space_battle_lose_timeout` | `1 1 2 1 2` | Enemy survives all five rounds |
+| `space_battle_overheat` | `1 1 1` | Reactor meltdown on repeated Fire |
+| `space_battle_defend_charge` | `2 2 1 2 1` | Heavy laser charges and fires |
+| `space_battle_shield_reaction` | `1 1 2 1 2` | Persistent defensive shield reduces damage |
+| `space_battle_emp_aggression` | `3 2 1 3 1` | Aggressive responses to EMP |
+| `space_battle_low_energy` | `3 3 3` | Insufficient energy for EMP |
+| `space_battle_low_energy_fire` | `3 3 1` | Insufficient energy for Fire |
+| `space_battle_invalid` | `9` | Invalid action immediately |
+| `space_battle_invalid_late` | `1 9` | Invalid choice after a valid turn |
+
+To replay one session after building the binary:
 
 ```bash
 ./space_battle < programs/space_battle_win.in
+./space_battle < programs/space_battle_win_emp.in
 ./space_battle < programs/space_battle_lose.in
-./space_battle < programs/space_battle_invalid.in
 ```
 
-Run all automated tests with `python3 run_tests.py`. The test script checks each game's output against its `.expected` file, both with and without `--optimize`.
+`python3 run_tests.py` runs all 14 recorded sessions in both build modes, plus a deterministic **243-sequence sweep** covering every possible five-action combination, using separately compiled native binaries with and without optimization. It checks identical transcripts, exactly one ending, no more than five rounds, the 29-character field geometry, multiple independent winning strategies (with and without EMP), distinct defeat modes, and reactive enemy states. The complete Stage 1–3 suite is retained.
 
 ## Tests and submission
 
-`python3 run_tests.py` runs all original Stage 1 AST golden tests unchanged, the Stage 2 semantic and runtime tests, four native Piping tests and six invalid Piping tests. It also tests the optimizer's expected AST and native output for all thirteen programs, plus two preservation-of-runtime-error cases. All previous suites are repeated with `--optimize`, checking error diagnostics and side-effect preservation. It also checks three recorded Space Battle sessions with and without optimization. It reports every failure and exits nonzero on a mismatch.
+`python3 run_tests.py` runs all original Stage 1 AST golden tests unchanged, the Stage 2 semantic and runtime tests, four native Piping tests and six invalid Piping tests. It also tests the optimizer's expected AST and native output for all thirteen programs, plus two preservation-of-runtime-error cases. All previous suites are repeated with `--optimize`, checking error diagnostics and side-effect preservation. It also checks fourteen recorded Space Battle sessions with and without optimization and exhausts every 3^5 deterministic action strategy in both modes. It reports every failure and exits nonzero on a mismatch.
 
 The local `stage3` branch is created from `stage2` and contains only local commits; it has not been pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions. The Stage 3 assignment separately requires `ai_usage_3.txt` at submission; it is not included yet.
