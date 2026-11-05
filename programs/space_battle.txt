@@ -37,22 +37,29 @@ spark playTurn(☼ action) -> ☼ ⟨
         recordCoordinates("You fire the laser!").
         enemy ~ takeHit(2 |> chargeLaser).
     ⟩ otherwise ⟨
-        recordCoordinates("You activate the shield.").
+        when action == 2 ⟨
+            recordCoordinates("You activate the shield.").
+        ⟩ otherwise ⟨
+            recordCoordinates("INVALID ACTION: Choose 1 or 2.").
+            finished = light.
+        ⟩
     ⟩
 
-    when enemy ~ hp == 0 ⟨
-        finished = light.
-        recordCoordinates("VICTORY: Enemy ship destroyed!").
-    ⟩ otherwise ⟨
-        recordCoordinates("Enemy fires back!").
-        when action == 1 ⟨
-            player ~ takeHit(2).
-        ⟩ otherwise ⟨
-            player ~ takeHit(2 |> raiseShield).
-        ⟩
-        when player ~ hp == 0 ⟨
+    when finished == dark ⟨
+        when enemy ~ hp == 0 ⟨
             finished = light.
-            recordCoordinates("DEFEAT: Your ship was destroyed.").
+            recordCoordinates("VICTORY: Enemy ship destroyed!").
+        ⟩ otherwise ⟨
+            recordCoordinates("Enemy fires back!").
+            when action == 1 ⟨
+                player ~ takeHit(2).
+            ⟩ otherwise ⟨
+                player ~ takeHit(2 |> raiseShield).
+            ⟩
+            when player ~ hp == 0 ⟨
+                finished = light.
+                recordCoordinates("DEFEAT: Your ship was destroyed.").
+            ⟩
         ⟩
     ⟩
     showField(player, enemy).
