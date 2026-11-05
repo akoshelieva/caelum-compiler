@@ -1,0 +1,4 @@
+spark digits(☼ first, ☼ second) -> ☼ ⟨
+    rise first * 10 + second.
+⟩
+recordCoordinates(digits(lookThroughTelescope(), lookThroughTelescope())).

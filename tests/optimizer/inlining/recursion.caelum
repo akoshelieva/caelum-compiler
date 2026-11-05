@@ -1,0 +1,8 @@
+spark recur(☼ n) -> ☼ ⟨
+    when n == 0 ⟨
+        rise 1.
+    ⟩ otherwise ⟨
+        rise recur(n - 1).
+    ⟩
+⟩
+recordCoordinates(recur(3)).

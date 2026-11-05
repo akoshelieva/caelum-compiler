@@ -1,0 +1,11 @@
+astro Box ⟨
+    flow ☼ n.
+    spark used() -> ☼ ⟨
+        rise n.
+    ⟩
+    spark unused() -> ☼ ⟨
+        rise n * 2.
+    ⟩
+⟩
+flow Box b = Box⟨n = 9⟩.
+recordCoordinates(b ~ used()).

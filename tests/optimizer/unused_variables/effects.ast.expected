@@ -1,0 +1,51 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: flow
+    type: ☼
+    name: counter
+    initializer:
+      IntegerLiteral @ 1:18
+        value: 0
+  Function @ 2:1
+    name:
+      'tick'
+    parameters:
+    result_type:
+      '☼'
+    body:
+      Assignment @ 3:5
+        name: counter
+        value:
+          Binary @ 3:23
+            operator:
+              '+'
+            left:
+              Identifier @ 3:15
+                name: counter
+            right:
+              IntegerLiteral @ 3:25
+                value: 1
+      Return @ 4:5
+        value:
+          Identifier @ 4:10
+            name: counter
+  CallStatement @ 6:1
+    call:
+      Call @ 6:20
+        name:
+          'tick'
+        args:
+  CallStatement @ 7:1
+    call:
+      Call @ 7:13
+        name:
+          'tick'
+        args:
+  CallStatement @ 8:1
+    call:
+      Call @ 8:1
+        name:
+          'recordCoordinates'
+        args:
+          Identifier @ 8:19
+            name: counter

@@ -1,0 +1,7 @@
+flow ☼ value = 2.
+when value == 2 ⟨
+    flow ☼ value = 999.
+    value = 1000.
+    recordCoordinates("yes").
+⟩
+recordCoordinates(value).

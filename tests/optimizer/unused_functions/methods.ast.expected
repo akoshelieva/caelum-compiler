@@ -1,0 +1,49 @@
+Program @ 1:1
+  Struct @ 1:1
+    name:
+      'Box'
+    fields:
+      Field @ 2:5
+        name:
+          'n'
+        type_name:
+          '☼'
+        mutable:
+          True
+    methods:
+      Function @ 3:5
+        name:
+          'used'
+        parameters:
+        result_type:
+          '☼'
+        body:
+          Return @ 4:9
+            value:
+              Identifier @ 4:14
+                name: n
+  Declaration @ 10:1
+    kind: flow
+    type: Box
+    name: b
+    initializer:
+      Constructor @ 10:14
+        name:
+          'Box'
+        fields:
+          'n'
+          IntegerLiteral @ 10:22
+            value: 9
+  CallStatement @ 11:1
+    call:
+      Call @ 11:1
+        name:
+          'recordCoordinates'
+        args:
+          Member @ 11:21
+            base:
+              Identifier @ 11:19
+                name: b
+            name:
+              'used'
+            args:

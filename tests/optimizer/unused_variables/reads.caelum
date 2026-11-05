@@ -1,0 +1,3 @@
+flow ☼ ignored = lookThroughTelescope().
+flow ☼ ignoredAgain = lookThroughTelescope().
+recordCoordinates(42).

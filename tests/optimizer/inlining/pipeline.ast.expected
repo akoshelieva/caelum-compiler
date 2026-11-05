@@ -1,0 +1,47 @@
+Program @ 1:1
+  CallStatement @ 7:1
+    call:
+      Call @ 7:1
+        name:
+          'recordCoordinates'
+        args:
+          InlineExpr @ 7:28
+            statements:
+              Declaration @ 4:13
+                kind: calm
+                type: ☼
+                name: inlineB
+                initializer:
+                  InlineExpr @ 7:21
+                    statements:
+                      Declaration @ 1:11
+                        kind: calm
+                        type: ☼
+                        name: inlineA
+                        initializer:
+                          IntegerLiteral @ 7:19
+                            value: 3
+                    result:
+                      Binary @ 2:12
+                        operator:
+                          '+'
+                        left:
+                          Identifier @ 2:10
+                            name: inlineA
+                        right:
+                          IntegerLiteral @ 2:14
+                            value: 4
+                    result_type:
+                      '☼'
+            result:
+              Binary @ 5:12
+                operator:
+                  '*'
+                left:
+                  Identifier @ 5:10
+                    name: inlineB
+                right:
+                  IntegerLiteral @ 5:14
+                    value: 2
+            result_type:
+              '☼'

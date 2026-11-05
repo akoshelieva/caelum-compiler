@@ -1,0 +1,21 @@
+Program @ 1:1
+  CallStatement @ 4:1
+    call:
+      Call @ 4:1
+        name:
+          'recordCoordinates'
+        args:
+          InlineExpr @ 4:19
+            statements:
+              Declaration @ 1:16
+                kind: calm
+                type: ☼
+                name: inlineA
+                initializer:
+                  IntegerLiteral @ 4:28
+                    value: 7
+            result:
+              Identifier @ 2:10
+                name: inlineA
+            result_type:
+              '☼'

@@ -1,0 +1,46 @@
+Program @ 1:1
+  CallStatement @ 4:1
+    call:
+      Call @ 4:1
+        name:
+          'recordCoordinates'
+        args:
+          InlineExpr @ 4:19
+            statements:
+              Declaration @ 1:14
+                kind: calm
+                type: ☼
+                name: inlineA
+                initializer:
+                  Call @ 4:26
+                    name:
+                      'lookThroughTelescope'
+                    args:
+              Declaration @ 1:23
+                kind: calm
+                type: ☼
+                name: inlineB
+                initializer:
+                  Call @ 4:50
+                    name:
+                      'lookThroughTelescope'
+                    args:
+            result:
+              Binary @ 2:21
+                operator:
+                  '+'
+                left:
+                  Binary @ 2:16
+                    operator:
+                      '*'
+                    left:
+                      Identifier @ 2:10
+                        name: inlineA
+                    right:
+                      IntegerLiteral @ 2:18
+                        value: 10
+                right:
+                  Identifier @ 2:23
+                    name: inlineB
+            result_type:
+              '☼'
