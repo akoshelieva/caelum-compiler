@@ -1,6 +1,6 @@
-# Caelum Compiler — Stage 2
+# Caelum Compiler — Stage 3 (Task 1: Piping)
 
-Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation.
+Caelum is a strictly typed, sky-themed language. The original Stage 1 syntax is retained: emoji primitive types, `fixed`/`calm`/`flow`, `when`/`otherwise`, `⟨ ... ⟩` blocks, period-terminated statements, Latin-only case-sensitive identifiers, and the original AST format. Stage 2 adds functions, nominal structures, member functions, integer arithmetic, checked errors, and LLVM IR generation. Stage 3 Task 1 adds typed, left-to-right piping (`|>`).
 
 ## Prerequisites
 
@@ -74,6 +74,59 @@ recordCoordinates(twice(7)).
 
 Function arguments are typed and passed **by value**. Parameters are `calm` by default; `flow ☼ value` permits reassignment to a local copy. All functions return their declared type, and all control-flow paths must execute `rise`. Recursive calls, forward calls, nested calls and calls used as standalone statements are allowed. Functions can read globals declared before them; `flow` globals can be assigned. Nested function declarations and top-level `rise` are forbidden. Every wrong argument count, type, or returned type produces a semantic diagnostic. A global `spark` named after a built-in is forbidden.
 
+## Piping: `|>` (Stage 3 Task 1)
+
+`value |> function1 |> function2` evaluates the input expression **once**, then passes the resulting value as the sole argument of `function1`, followed by `function2`. A pipe stage names an existing **global user-defined** `spark` function with **exactly one** parameter. Forward-declared global functions are permitted. A method, a built-in (`recordCoordinates`, `lookThroughTelescope`), a variable, a lambda, or a call with explicit arguments (`f(2)`) is not a valid stage. Piping is allowed in every expression context, including function arguments, arithmetic operands in parentheses, return values, named constructor fields and conditions.
+
+The operator is **left associative**, and has lower precedence than `==` and `!=`. `a + b |> f |> g` means `g(f(a + b))`. Parentheses override precedence, e.g. `(a |> f) + b`. The first numeric literal can use the first function parameter's expected integer width, just as it would in an ordinary call. **No implicit conversions** are introduced: for each stage, its parameter type must exactly match the preceding value's type; the result type becomes the input type to the next stage. A bad stage reports its **1-based index, name, expected and actual types**, at the pipe operator's source position. A non-callable/missing stage or wrong parameter count also reports the precise stage. Evaluation order and function side effects are unchanged.
+
+**Example 1 — arithmetic processing** (`tests/piping_valid/chain.caelum`, prints `20`):
+
+```text
+spark twice(☼ x) -> ☼ ⟨
+    rise x * 2.
+⟩
+spark addTen(☼ x) -> ☼ ⟨
+    rise x + 10.
+⟩
+recordCoordinates(5 |> twice |> addTen).
+```
+
+**Example 2 — wider integers and a boolean result** (`tests/piping_valid/types.caelum`, prints `true`):
+
+```text
+spark widen(☽ n) -> ☽ ⟨
+    rise n + 1.
+⟩
+spark positive(☽ n) -> ☁ ⟨
+    rise n != 0.
+⟩
+recordCoordinates(9000000000 |> widen |> positive).
+```
+
+**Builder-generated LLVM IR excerpt** (14 consecutive lines from `python3 compiler.py tests/piping_valid/chain.caelum output.ll`):
+
+```llvm
+define i32 @"main"()
+{
+entry:
+  %".2" = call i32 @"caelum.fn.twice"(i32 5)
+  %".3" = call i32 @"caelum.fn.addTen"(i32 %".2")
+  %".4" = getelementptr inbounds [3 x i8], [3 x i8]* @"caelum.str.1", i32 0, i32 0
+  %".5" = call i32 (i8*, ...) @"printf"(i8* %".4", i32 %".3")
+  %".6" = getelementptr inbounds [2 x i8], [2 x i8]* @"caelum.str.2", i32 0, i32 0
+  %".7" = call i32 (i8*, ...) @"printf"(i8* %".6")
+  ret i32 0
+}
+
+@"caelum.str.1" = internal constant [3 x i8] c"%d\00"
+@"caelum.str.2" = internal constant [2 x i8] c"\0a\00"
+```
+
+1. `main` evaluates the constant `5` and calls `caelum.fn.twice` with it; the returned `i32` value is bound to `%.2`.
+2. The second call passes that result directly to `caelum.fn.addTen`, proving the left-to-right chain with no intermediate recomputation or casts.
+3. `getelementptr` obtains the format-string addresses for `printf`, which prints the final `i32` and newline, then `main` returns zero. Every instruction above was emitted through `llvmlite.ir.IRBuilder` or its module/global APIs, not manually assembled.
+
 ## Structures: `astro` and named construction
 
 ```text
@@ -124,6 +177,6 @@ The compiler declares all functions before generating function bodies. User func
 
 ## Tests and submission
 
-`python3 run_tests.py` runs the 47 original Stage 1 AST golden tests unchanged, checks that all Stage 1 valid cases still compile to LLVM, checks Stage 2 semantic-invalid programs and one-line diagnostics, builds and executes end-to-end programs with `clang`, verifies exact stdout, supplies `.in` files for stdin tests, and checks runtime error stderr and exit status. It reports every failure and exits nonzero when any test fails.
+`python3 run_tests.py` runs the 47 original Stage 1 AST golden tests unchanged, checks that all Stage 1 valid cases still compile to LLVM, checks Stage 2 semantic-invalid programs and one-line diagnostics, builds and executes end-to-end programs with `clang`, verifies exact stdout, supplies `.in` files for stdin tests, and checks runtime error stderr and exit status. It also runs four valid Piping programs as native binaries and checks six invalid Piping cases with exact one-line diagnostics and no output file. It reports every failure and exits nonzero when any test fails.
 
-The local `stage2` branch contains Git commits and is not pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions; the assignment separately requires an `ai_usage_2.txt` disclosure at final submission.
+The local `stage3` branch is created from `stage2` and contains only local commits; it has not been pushed. Generated `.ll` files, executables and scratch files are excluded from the repository. Existing AI usage files were deliberately left untouched per the provided instructions. The Stage 3 assignment separately requires `ai_usage_3.txt` at submission; this file has not been created or modified in Task 1.

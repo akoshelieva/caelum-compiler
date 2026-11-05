@@ -1,6 +1,6 @@
 (*
-   CAELUM — Stage 2 EBNF (implementation specification)
-   Source of truth: original Stage 1 grammar and the approved Stage 2 design.
+   CAELUM — Stage 3 EBNF (implementation specification)
+   Source of truth: Stage 1/2 grammar with the Stage 3 Piping extension.
    EBNF notation: comma = sequence; | = alternative; [ ] = optional;
                   { } = repetition; ( ) = grouping; quoted text = terminal.
    EBNF comments here are documentation; Caelum source comments are NOT added.
@@ -78,7 +78,12 @@ member_function         = function_declaration ;
 
 (* ========================= EXPRESSIONS ========================== *)
 
-expression              = comparison_expression ;
+(* The pipe operator has lower precedence than comparison, is left-to-right,
+   and passes one value into each named, single-parameter global function.
+   Parentheses delimit a subexpression when different grouping is wanted. *)
+expression              = piping_expression ;
+piping_expression       = comparison_expression,
+                          { "|>", identifier } ;
 comparison_expression   = additive_expression,
                           [ comparison_operator, additive_expression ] ;
 comparison_operator     = "==" | "!=" ;
@@ -162,7 +167,7 @@ spaced_tilde            = mandatory_spaces, "~", mandatory_spaces ;
 mandatory_spaces        = " ", { " " } ;
 
 (* Lexing and contextual-name constraints:
-   1. Longest-match symbols are used: '->' before '-', '==' before '=',
+   1. Longest-match symbols are used: '|>' is one token, '->' before '-', '==' before '=',
       '!=' before unexpected '!', and '☁︎' before '☁'.
    2. The lexer implements spaced_tilde as ONE accessor token or checks
       both immediately adjacent source bytes for ASCII 0x20.
@@ -190,7 +195,10 @@ mandatory_spaces        = " ", { " " } ;
       outside it remains an ordinary identifier when declared.
   12. Method and global calls have expression forms; calls alone can be
       statements, but arbitrary expression statements are not legal.
-  13. Source locations and diagnostic spelling of the old Stage 1 AST
+  13. Each pipe stage is a named global spark function with exactly one
+      parameter; its input type must match the preceding expression/result.
+      Stages are type-checked at their own source locations, without casts.
+  14. Source locations and diagnostic spelling of the old Stage 1 AST
       and golden invalid tests must remain unchanged.
 *)
 
