@@ -1,0 +1,464 @@
+AI USAGE — CAELUM STAGE 2
+
+PURPOSE AND SCOPE
+-----------------
+This disclosure records AI assistance used during Stage 2 language design,
+compiler implementation, regression testing, documentation, and review.
+It is a NEW Stage 2 disclosure and does not replace the Stage 1 ai_usage.txt.
+The Stage 1 file was not edited during the Stage 2 coding request.
+
+1. AI TOOLS USED
+----------------
+- OpenAI ChatGPT (GPT-6), text conversation: used to analyze the assignment,
+  inspect repository files, discuss language design, write EBNF and test
+  matrices, generate and revise Python compiler modules, create test fixtures,
+  review diagnostics, and provide Git/testing instructions.
+- ChatGPT's terminal/Python execution environment: used under the assistant's
+  control to read uploaded ZIP/PDF files, create and modify local files, run
+  Python and Clang, execute tests, examine diffs, make local Git commits, and
+  produce the repository ZIP. This is an execution environment, not a
+  separately credited generative AI model.
+- Program and dependency tools used for verification (not generative AI):
+  Python 3, llvmlite, LLVM/Clang, and Git.
+
+No other AI services are documented in this conversation. Any additional
+personal AI use outside this chat must also be disclosed by the student.
+
+2. INPUTS AND PROVIDED DECISIONS
+---------------------------------------
+Input/reference material supplied to ChatGPT:
+- Earlier Caelum Stage 1 ZIP, including the lexer, recursive-descent parser,
+  AST nodes/printer, grammar.ebnf, README, scripts, and valid/invalid tests.
+- Newer caelum-compiler ZIP containing the local Git repository skeleton.
+- w07-project-stage2 PDF with Tasks 1–4 and submission rules.
+- Stage 1 grading feedback: ordinary U+2601 CLOUD was rejected unless the
+  invisible U+FE0E text selector was present; ai_usage.txt had truncated
+  prompts and vague descriptions of changes; a PR review was not requested.
+
+Language design decisions supplied or explicitly approved by the student:
+- Preserve all Stage 1 constructs and choose astronomical naming: spark,
+  astro, rise, core, lookThroughTelescope(), recordCoordinates().
+- Use existing angle brackets ⟨ ⟩ rather than introducing curly braces.
+- Use spaced ~ for member access, named initialization for every field,
+  calm/flow field mutability, strict nominal types, and recursive object
+  printing in declaration field order.
+- Accept pass-by-value parameters, local shadowing, checked arithmetic,
+  a strict whole-token integer input rule, contextual Stage 2 keywords,
+  transitive member mutation classification, and the other numbered choices
+  discussed in this chat (1–64).
+- Request no remote push and no editing of ai_usage files during the original
+  coding phase. This disclosure is prepared separately following the later
+  explicit request to complete ai_usage.
+
+3. AI-GENERATED PARTS, WHAT WAS REUSED, WHAT CHANGED, AND WHY
+------------------------------------------------------------
+3.1 Architecture and requirements mapping
+AI contribution: audited the previous compiler, identified Stage 2 components,
+proposed an implementation order (frontend → semantic pass → LLVM backend →
+tests), then helped compare 64 language-design questions with the assignment.
+Taken as-is: the student's existing sky-themed language choices, Stage 1
+syntax and course requirements were retained as authoritative inputs.
+Changed/refined: ambiguous proposals were revised via explicit student
+choices; e.g. member access is spaced ~, not '.', and constructors use ⟨ ⟩,
+not curly braces, to preserve the Caelum language identity. The user approved
+these changes before any implementation.
+Files influenced: grammar.ebnf, README.md, docs/test_matrix.md, and every
+new Stage 2 parsing/semantic/codegen component.
+
+3.2 Stage 1 code reuse and local Git reconstruction
+AI contribution: inspected the provided repositories, noted that the newer
+Git archive contained a README and Git metadata but not the Stage 1 compiler
+sources, and restored the earlier supplied Stage 1 sources/fixtures onto local
+main before branching into Stage 2 work.
+Taken as-is: baseline Stage 1 lexical tokens/syntax decisions, AST golden
+outputs, error formatting, and the 47 existing AST regression cases. The
+Stage 1 ai_usage.txt was kept without edits.
+Changed/refined: prepared the local branch history to retain a Stage 1 base
+and six Stage 2 commits, without pushing. These are local repository actions
+carried out by the assistant, not a user-authored remote PR.
+Evidence: 87bc365 Restore Stage 1 compiler and regression fixtures; six
+Stage 2 commits listed in section 4.
+
+3.3 Lexer and token definitions
+Files: lexer.py, tokens.py.
+AI contribution: expanded the handwritten byte-oriented UTF-8 lexer with
+arithmetic punctuation, call/constructor punctuation, the arrow token,
+quoted UTF-8 strings and escapes, and lexical validation of spaced ~.
+Taken as-is: the basic hand-written lexer/state-machine approach, legacy
+keywords, ☼ and ☽ spelling, existing positioning/error style, and original
+☁︎ spelling from Stage 1.
+Changed/refined: accepted both U+2601 (☁) and U+2601 U+FE0E (☁︎) as the same
+boolean type token and preserved rejection of U+FE0F. This directly fixes the
+Stage 1 grading feedback. Added UTF-8 validation and string escapes needed
+for recordCoordinates(), and explicit whitespace constraints for ~ to match
+student-approved grammar.
+
+3.4 Parser, AST and --ast display
+Files: parser.py, ast_nodes.py, ast_printer.py.
+AI contribution: extended recursive descent with spark declarations,
+parameters, rise, astro fields and member methods, named constructors,
+method/member chains, call expressions, call statements, strings, unary and
+binary arithmetic, and precedence rules. Added corresponding AST nodes,
+parameter result types, mutability flags, field initializer lists, and AST
+rendering for new nodes.
+Taken as-is: the one-function-per-rule recursive-descent structure, original
+Stage 1 AST node layouts/printing, and 47 original AST/error golden fixtures.
+Changed/refined: after a parsing ambiguity was found in conditions, the
+assistant refined constructor-vs-block lookahead (commit fa4f713). Existing
+negative integer literal AST output was kept stable while supporting unary
+minus. --ast was kept syntax-only by the student's choice (62A).
+
+3.5 Separate semantic analysis
+File: semantic.py (new).
+AI contribution: generated symbol descriptors for variables, functions and
+structures; scope and name lookup, forward declarations/signatures, type and
+arity checks, recursive/forward function handling, structural fields by
+index, named-constructor completeness and uniqueness checks, rise/path
+checking, static literal expression checking, field-chain mutability, and
+transitive mutating method-effect analysis.
+Taken as-is: the student's fixed language rules: default immutable
+parameters, flow for local reassignment, immutable calm chains, copy-by-value
+objects, nominal astro types, local→field→global name resolution, and special
+core behavior. These were implemented as rules rather than invented by AI.
+Changed/refined: after automated/manual test inspection showed that core
+could still be assigned, added explicit rejection of core reassignment and a
+regression test (commit fc70864). The separate pass was added specifically
+because the Stage 1 parser lacked semantic validation and the assignment
+requires checking calls before llvmlite.builder.call.
+
+3.6 LLVM code generation and runtime I/O
+Files: codegen.py (new), compiler.py (updated).
+AI contribution: generated LLVM IR via llvmlite.ir, with a module, function
+declarations before body emission, mangled user/function names, basic blocks
+for when/otherwise, i32/i64 arithmetic, checked overflow and divide-by-zero,
+identified LLVM structure types, GEP-based field access, member receiver
+pointer arguments, recursive struct comparison/printing, scanf-based reading
+with checked whole tokens, and printf-based output.
+Taken as-is: the assignment's requirement to use a builder, not IR string
+assembly, plus the student's decided print/read semantics and Stage 1 types.
+Changed/refined: while checking LLVM output, object printing was revised to
+use member-field indices from the semantic structure table with explicit
+getelementptr/load rather than an indirect shortcut, making it conform to
+the Stage 2 assignment (commit fc70864). The CLI was extended from --ast to
+'<input> <output.ll>'; lexical, syntax, and semantic failures produce the
+specified single-line error with no output file, rather than a traceback.
+
+3.7 Tests, verification and documentation
+Files: run_tests.py, tests/runtime/, tests/runtime_errors/,
+tests/semantic_invalid/, README.md, grammar.ebnf, docs/test_matrix.md.
+AI contribution: drafted a full Stage 2 EBNF and test matrix, rewrote/extended
+the README with build/run steps and semantic rules, generated positive,
+negative, runtime input/expected/stderr fixtures, and expanded the runner to
+compile, link with Clang, execute, compare exact outputs, and report failures.
+Taken as-is: 22 valid and 25 invalid original Stage 1 golden cases, and the
+baseline language semantics stated in the student-approved design.
+Changed/refined: the first full test run hung because repeated compilations
+shared LLVM context state; the assistant adjusted compiler/test execution to
+avoid that problem and introduced subprocess timeouts. A later audit found
+core assignment had no semantic guard and object printing needed explicit
+GEP; both were fixed and regression-tested. The original 47 AST tests still
+pass; the final reviewed ZIP passes 127/127 automated checks (verified again
+while drafting this disclosure). The resulting set includes Stage 2 invalid
+programs, 16 end-to-end executables and 6 runtime error cases.
+
+3.8 What was NOT done or was NOT independently verified
+- The assistant did not push a branch or open/merge a pull request.
+- Requesting the GitHub reviewer was NOT performed; a future PR must use the
+  actual 'Request review' mechanism, not just @mention the reviewer.
+- The student did not report independently authored modifications to the
+  generated Stage 2 implementation in this chat. Do not claim such edits
+  without adding concrete evidence and descriptions.
+- An AI-written explanation is not a substitute for the student's own
+  understanding. The next section is a technical starting point to review
+  and restate in the student's own words for submission.
+
+4. COMMIT HISTORY TRACEABILITY
+------------------------------
+Local Stage 1 baseline: 87bc365 — Restore Stage 1 compiler and regression fixtures
+Local Stage 2 commits, in chronological order:
+  9198503 — Extend hand-written frontend with Caelum functions and astro syntax
+  fa4f713 — Resolve constructor versus block lookahead in conditions
+  c9431ed — Add scoped semantic checking and transitive member-effect analysis
+  10ddb3f — Generate verified LLVM modules with checked arithmetic and runtime I-O
+  c962642 — Document Stage 2 and add end-to-end regression coverage
+  fc70864 — Reject core rebinding and emit field-indexed object printing
+
+5. TECHNICAL EXPLANATION OF CODE
+------------------------------------------------------------------
+The notes below provide concrete technical understanding to study and rewrite
+in the student's own wording. They were themselves prepared with AI help.
+
+- The lexer reads UTF-8 input, recognizes tokens with types and line/column
+  positions, and rejects invalid characters early. It accepts both spellings
+  of the cloud boolean type and maps them to one internal type token.
+- The recursive-descent parser consumes those tokens and creates an AST. A
+  separate precedence hierarchy ensures that * and / bind more tightly than
+  + and -, and that comparison happens after arithmetic. The AST carries
+  the information needed for later phases: source locations, arguments,
+  parameter/return types, field names, and mutability flags.
+- The semantic pass does not execute programs or emit LLVM. It constructs
+  symbol records, resolves names by scope, verifies that types and argument
+  counts agree, and checks when values/fields can be assigned. Registering
+  function signatures before analyzing function bodies permits recursion
+  and calls to functions declared below. Tracking mutating effects through
+  calls is needed so a seemingly read-only method cannot write an astro
+  field indirectly while called on a calm receiver.
+- LLVM generation converts a semantically valid AST into the builder's
+  instructions. Local storage uses alloca/load/store, conditions become
+  conditional branches among basic blocks, and member access obtains the
+  stored field pointer by struct index using GEP. Methods receive an extra
+  pointer to the receiver. The generator declares scanf/printf and emits
+  format strings as constants. Overflow/division guards branch to explicit
+  runtime errors before performing unsafe operations.
+- The test runner validates multiple independent properties: legacy AST
+  compatibility, exact compiler error lines and lack of output files on
+  failure, actual machine-code execution via Clang, exact stdout including
+  newline characters, stdin fixtures, and runtime failures. End-to-end
+  tests are necessary because valid-looking LLVM text can still have wrong
+  runtime behavior or print the wrong integer width.
+
+6. COMPLETE PROMPTS FROM STAGE 2 CHAT
+-----------------------------------------------
+P01 — Initial repository audit and planning
+"""
+Я працюю над Stage 2 Caelum. Надсилаю архіви репозиторію з попереднім етапом та PDF із вимогами нового етапу.
+Спочатку уважно переглянь усі файли архіву, структуру проєкту, наявний код, граматику, README. Проаналізуй, що вже реалізовано, як працює компілятор, які архітектурні рішення використані. Важливо зберегти всю по, синтаксис, ключові слова, правила та особливості Caelum. Новий функціонал має розширювати наявну мову, не порушуючи сумісності зі Stage 1.
+Ознайомся з вимогами Stage 2 та фідбеком за Stage 1. Визнач, що вже готове, які недоліки потрібно виправити, чого бракує та які нові компоненти необхідно реалізувати.
+Розбий усю роботу на чіткі, послідовні етапи. Для кожного етапу визнач необхідні зміни, файли, яких він стосуватиметься, та очікуваний результат. Вкажи залежності між етапами й рекомендований порядок реалізації.
+Окремо виділи рішення щодо дизайну мови, які потрібно узгодити до початку програмування.
+Поки що нічого не кодим
+"""
+
+P02 — User-defined astronomical syntax and semantics
+"""
+Ось які ідеї і рішення щодо дизайну я вже прийняла
+Усі нові назви мають логічно поєднуватися з небесною та астрономічною тематикою Caelum.
+spark — оголошення функцій.
+astro — оголошення структур із полями та методами.
+rise — повернення значення з функції.
+~ — доступ до полів і методів, із пробілами з обох боків.
+core — посилання на поточний об’єкт усередині методу.
+lookThroughTelescope() — читання одного цілого числа зі стандартного вводу, аналог read.
+recordCoordinates() — виведення чисел, bool, рядків та об’єктів, аналог print.
+Об’єкти створюються через іменовану ініціалізацію. Усі поля обов’язкові, порядок їх передавання довільний, повторення й невідомі поля заборонені.
+Для полів astro використовуються calm і flow. calm-об’єкт повністю незмінний. Присвоєння через ~ дозволене, тільки якщо весь ланцюжок змінюваний. Mutating-методи компілятор визначає автоматично.
+Порядок пошуку імен: локальні змінні та параметри → поля об’єкта → глобальні змінні. core дозволяє явно звернутися до поля.
+Типізація строга
+recordCoordinates() виводить кожне значення з нового рядка. light/dark відображаються як true/false, рядки без лапок, числа у десятковому форматі. Об’єкти виводяться у форматі Star⟨id=1, brightness=100⟩. Поля друкуються в порядку оголошення, вкладені об’єкти — рекурсивно.
+ Обов’язково треба зберегти всі мої попередні рішення. Поки нічого не пишемо. Вирішуємо інші питання по дизайнуі логіці мови
+"""
+
+P03 — Proceed one question at a time
+"""
+Вирішуємо кожне питання покроково
+"""
+
+P04 — Keep original angle brackets
+"""
+В нас вже є інші дужки, будемо їх і дотримуватись
+"""
+
+P05 — Approve function declaration syntax
+"""
+ок, далі
+"""
+
+P06 — Choose parameter mutability A
+"""
+Для параметрів функцій Caelum обираю варіант A. Зафіксуй рішення та перейдемо до наступного питання дизайну.
+"""
+
+P07 — Choose pass-by-value for objects
+"""
+Для передавання об'єктів у звичайні функції Caelum обираю варіант A. Зафіксуй це рішення й перейдемо до наступного питання.
+"""
+
+P08 — Choose returns on all paths A
+"""
+a
+"""
+
+P09 — Choose shadowing A
+"""
+Для областей видимості Caelum обираю варіант A. Зафіксуй рішення та перейдемо до наступного питання дизайну.
+"""
+
+P10 — Choose arithmetic A
+"""
+a
+"""
+
+P11 — Choose checked arithmetic overflow A
+"""
+Для арифметичного переповнення Caelum обираю варіант A. Зафіксуй рішення та перейдемо до наступного питання.
+"""
+
+P12 — Choose division-by-zero checking A
+"""
+A
+"""
+
+P13 — Choose numerical literal classification B
+"""
+B
+"""
+
+P14 — Choose no explicit numeric casts B
+"""
+Для явного перетворення числових типів Caelum обираю варіант B. Зафіксуй рішення та перейдемо до наступного питання.
+"""
+
+P15 — Choose telescope input return type A
+"""
+a
+"""
+
+P16 — Choose invalid-input runtime errors A
+"""
+Для некоректного вводу lookThroughTelescope() в Caelum обираю варіант A. Зафіксуй рішення та перейдемо до наступного питання дизайну.
+"""
+
+P17 — Choose multiple print arguments A
+"""
+A
+"""
+
+P18 — Choose string literals only A
+"""
+A
+"""
+
+P19 — Choose string escapes A
+"""
+A
+"""
+
+P20 — Choose call statements A
+"""
+А
+"""
+
+P21 — Choose contextual keywords A
+"""
+A
+"""
+
+P22 — Choose shared namespace A and batches of three
+"""
+A. Обираємо одразу по три
+"""
+
+P23 — Approve design decisions 20–22
+"""
+Затверджую рішення Caelum: 20B, 21A, 22A. Зафіксуй їх і запропонуй наступні три питання дизайну. Код поки не пишемо.
+"""
+
+P24 — Approve design decisions 23–25
+"""
+Затверджую рішення Caelum: 23A, 24A, 25A. Зафіксуй їх і запропонуй наступні три питання дизайну. Код поки не пишемо.
+"""
+
+P25 — Approve design decisions 26–28 and check assignment
+"""
+Затверджую рішення Caelum: 26B, 27A, 28A. Зафіксуй їх і запропонуй наступні три питання дизайну. Код поки не пишемо. Перевір, що ми ще не обрали по вимогам  Асайментк
+"""
+
+P26 — Approve design decisions 29–31
+"""
+Затверджую рішення Caelum: 29B, 30A, 31A. Зафіксуй їх і перейдемо до наступних трьох невирішених питань, пріоритезуючи вимоги Assignment Stage 2. Код поки не пишемо.
+"""
+
+P27 — Approve design decisions 32–34
+"""
+Затверджую рішення Caelum: 32A, 33A, 34A. Зафіксуй їх і запропонуй наступні три питання дизайну за вимогами Assignment Stage 2. Код поки не пишемо.
+"""
+
+P28 — Approve design decisions 35–37
+"""
+Затверджую рішення Caelum: 35B, 36A, 37B. Зафіксуй їх і запропонуй наступні три невирішені питання дизайну за вимогами Assignment Stage 2. Код поки не пишемо.
+"""
+
+P29 — Approve design decisions 38–40
+"""
+Затверджую рішення Caelum: 38A, 39A, 40A. Зафіксуй їх і запропонуй наступні три невирішені питання, орієнтуючись на вимоги Assignment Stage 2. Код поки не пишемо.
+"""
+
+P30 — Approve design decisions 41–43
+"""
+Затверджую рішення Caelum: 41A, 42A, 43A. Зафіксуй їх і запропонуй наступні три невирішені питання за вимогами Assignment Stage 2. Код поки не пишемо.
+"""
+
+P31 — Approve design decisions 44–46
+"""
+Затверджую рішення Caelum: 44A, 45A, 46A. Зафіксуй їх і запропонуй наступні три невирішені питання, пріоритезуючи вимоги Assignment Stage 2. Код поки не пишемо.
+"""
+
+P32 — Approve design decisions 47–49
+"""
+Затверджую рішення Caelum: 47A, 48A, 49A. Зафіксуй їх і запропонуй наступні три невирішені питання за вимогами Assignment Stage 2. Код поки не пишемо.
+"""
+
+P33 — Approve design decisions 50–52
+"""
+Затверджую рішення Caelum: 50A, 51A, 52A. Зафіксуй їх і запропонуй наступні три невирішені питання, пріоритезуючи обов'язкові правила Assignment Stage 2. Код поки не пишемо.
+"""
+
+P34 — Approve design decisions 53–55
+"""
+Затверджую рішення Caelum: 53A, 54A, 55B. Зафіксуй їх і перевір решту невирішених питань дизайну за Assignment Stage 2. Якщо залишилися важливі — запропонуй наступні три. Код поки не пишемо.
+"""
+
+P35 — Approve design decisions 56–58
+"""
+Затверджую рішення Caelum: 56A, 57A, 58A. Зафіксуй їх і перевір, які важливі невирішені правила ще залишилися. Код поки не пишемо.
+"""
+
+P36 — Approve design decisions 59–61 and request audit
+"""
+Затверджую рішення Caelum: 59A, 60A, 61A. Зафіксуй їх і проведи фінальний аудит усієї специфікації Caelum Stage 2 на суперечності, прогалини та відповідність Assignment. Код поки не пишемо.
+"""
+
+P37 — Resolve final audit questions
+"""
+Вирішуємо знайдені питання
+"""
+
+P38 — Approve final design decisions 62–64
+"""
+Затверджую рішення Caelum: 62A, 63A (погоджений порядок пошуку built-ins), 64A. Зафіксуй їх і підготуй підсумок фінальної специфікації без написання коду.
+"""
+
+P39 — Request EBNF and test matrix and provide Stage 1 feedback
+"""
+Формуємо EBNF та матрицю. Пам'ятаємо про зауваження щодо попередньої версії коду:
+
+- Language Design — 3.5/4: a complete, well-formatted EBNF, emoji types and ⟨ ⟩ blocks; overflow is checked for declaration literals. `☁︎` is accepted only with the invisible U+FE0E selector, so the plain ☁ that people type is a lexical error (-0.5).
+"""
+
+P40 — Authorize Stage 2 implementation and ZIP output
+"""
+Надсилаю актуальну версію коду.
+ Приступаємо до реалізації узгодженої архітектури.
+Створюємо нову гілку stage2 за вимогами. Можеш робити комітну історію, дотримуючись стилю. Важливо виправити зауваження викладача по символу хмарки та інші. Пушити нічого не потрібно, змінювати AI usage теж. 
+Результат: zip-архів репозиторію
+"""
+
+P41 — Request continuation
+"""
+Продовжи
+"""
+
+P42 — Request terminal validation commands
+"""
+Тепер дай команди для подальшої перевірки і тестування
+"""
+
+P43 — Request complete AI disclosure and provide grading feedback
+"""
+Тепер, беручи дані з цього чату, допоможи заповнити ai_usage file щоб відповідати критеріям того, що він повинен покривати і зважаючи на зауваження викладача
+
+- Submission format & code style — 1/2: clean, modular code. No reviewer was requested on the PR (-0.5). ai_usage.txt is thin: the prompts are truncated and "what was changed" is generic (-0.5). Next time an incomplete ai_usage.txt is graded 0.
+"""
+
+AI link: 
+https://chatgpt.com/share/6ae0cef8-5af4-83ed-9452-d8835e007d56

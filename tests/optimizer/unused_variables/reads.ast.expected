@@ -1,0 +1,21 @@
+Program @ 1:1
+  CallStatement @ 1:1
+    call:
+      Call @ 1:18
+        name:
+          'lookThroughTelescope'
+        args:
+  CallStatement @ 2:1
+    call:
+      Call @ 2:23
+        name:
+          'lookThroughTelescope'
+        args:
+  CallStatement @ 3:1
+    call:
+      Call @ 3:1
+        name:
+          'recordCoordinates'
+        args:
+          IntegerLiteral @ 3:19
+            value: 42

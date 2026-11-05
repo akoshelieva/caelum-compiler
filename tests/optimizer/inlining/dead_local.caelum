@@ -1,0 +1,5 @@
+spark use(☼ x) -> ☼ ⟨
+    flow ☼ neverRead = 99.
+    rise x + 2.
+⟩
+recordCoordinates(use(6)).

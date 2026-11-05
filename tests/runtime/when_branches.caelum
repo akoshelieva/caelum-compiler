@@ -1,0 +1,3 @@
+flow ☼ x = 2.
+when x == 0 ⟨ recordCoordinates(0). ⟩ otherwise ⟨ recordCoordinates(1). ⟩
+when x != 0 ⟨ recordCoordinates(2). ⟩

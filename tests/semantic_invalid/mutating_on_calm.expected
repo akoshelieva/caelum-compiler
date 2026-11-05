@@ -1,0 +1,1 @@
+compilation error: line 3:3: mutating member call requires a mutable object chain

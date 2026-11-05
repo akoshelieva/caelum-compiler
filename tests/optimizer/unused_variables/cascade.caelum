@@ -1,0 +1,3 @@
+flow ☼ first = 10.
+flow ☼ second = first.
+recordCoordinates(7).

@@ -1,0 +1,3 @@
+flow ☼ number = lookThroughTelescope().
+flow ☼ discarded = number / 0.
+recordCoordinates(55).

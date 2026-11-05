@@ -1,0 +1,10 @@
+flow ☼ counter = 0.
+spark tick(☼ number) -> ☼ ⟨
+    counter = counter + 1.
+    rise number + counter.
+⟩
+spark triple(☼ number) -> ☼ ⟨
+    rise number * 3.
+⟩
+recordCoordinates(lookThroughTelescope() |> tick |> triple).
+recordCoordinates(counter).

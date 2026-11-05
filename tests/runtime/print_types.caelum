@@ -1,0 +1,2 @@
+flow ☽ big = 9000000000.
+recordCoordinates(42, big, light, dark, "Star: \"Sirius\"", "Зірка").

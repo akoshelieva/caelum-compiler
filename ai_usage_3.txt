@@ -1,0 +1,317 @@
+AI USAGE — CAELUM COMPILER — STAGE 3
+====================================
+
+
+1. AI TOOLS AND NON-AI TOOLS
+---------------------------
+Generative AI used in the documented Stage 3 work:
+- OpenAI ChatGPT (GPT-6), through a text conversation. It was used to read
+  the Stage 3 assignment, plan implementation, draft and revise code, inspect
+  repository archives, design tests, debug failures, audit requirements,
+  review game mechanics, draft README content, and explain WSL/Git commands.
+- ChatGPT's Python/terminal execution environment was used by the assistant
+  to inspect ZIP/PDF inputs, edit repository files, execute test suites,
+  compile/run binaries, compare outputs, use Git locally, and build ZIPs.
+  This is an execution environment, NOT a second generative AI service.
+
+Non-generative tools involved in implementation or verification:
+- Python 3, pytest-like custom runner (run_tests.py), llvmlite,
+  LLVM llc, Clang etc.
+
+
+2. INPUT MATERIAL AND STUDENT-DIRECTED DECISIONS
+------------------------------------------------
+Material provided for the work:- The existing Caelum compiler/repository and Stage 2 branch.
+- The Stage 3 assignment PDF (w10-project-stage3).
+- The previous README, grammar.ebnf, ai_usage.txt, ai_usage_2.txt and tests.
+- User feedback from WSL compilation, terminal test runs, and Git commands.
+
+Decisions requested by the student in this conversation:
+- Preserve backwards compatibility with Stage 2 and the sky-themed Caelum
+  syntax; add Piping (|>) as the Stage 3 language feature.
+- Add the three required checked-AST optimizations behind --optimize.
+- Use Space Battle as the real interactive program. The first small game had
+  three rounds and two actions; the student asked for a more substantial
+  tactical Last Stand version with five rounds, Fire, Defend, EMP, energy,
+  reactor heat, shields, charged laser, reactive enemy behavior, and several
+  winning strategies.
+- Keep the game deterministic rather than adding a random-number facility.
+- Keep the existing Stage 1/2 behavior and LLVM IRBuilder approach.
+- Fix the critical compiler error-handling issues without modifying the
+  documentation during that patch; update README separately afterward.
+- Preserve Git history in the downloadable ZIP and leave PR submission to
+  the student rather than pushing or merging remotely from the assistant.
+
+STUDENT RESPONSE
+I tried to keep the original idea and syntax of Caelum as much as possible, the way it was in the previous stages, while adding Piping for Stage 3. For the final task, I wanted to create a small space battle game called Space Battle.
+
+At first, I was planning to make a very simple game with only two actions and three rounds. Then I realized that this version was too predictable and not very interesting, so I tried to make it more engaging. I wanted the player to actually think and choose what to do in each round instead of just attacking all the time. That's how I came up with energy, reactor overheating, EMP attacks, and different enemy behaviors.
+
+I decided not to add full randomness so that the game would be easier to test and I wouldn't have to add new features or functionality to the compiler. After implementing the game, I ran it in WSL, tested different action sequences, and compared how it worked with and without optimization. When I found some issues with the compiler's error handling, I fixed them.
+
+
+
+
+3. AI CONTRIBUTIONS, ACCEPTED WORK, AND STUDENT CHANGES
+-------------------------------------------------------
+3.1 Task 1: Piping language feature
+
+Files affected: lexer.py, tokens.py, parser.py, ast_nodes.py,
+ast_printer.py, semantic.py, codegen.py, grammar.ebnf, README.md,
+tests/piping_valid/, tests/piping_invalid/, run_tests.py.
+
+AI contribution:
+- Added recognition and parsing of the |> operator and a left-to-right
+  Pipeline AST representation.
+- Added semantic checking that each stage is a valid unary global function,
+  and that a stage's input type matches the preceding output type; stage
+  diagnostics identify a failing stage.
+- Added LLVM generation using the existing llvmlite IRBuilder, in which
+  each function call consumes the value produced by the preceding stage.
+- Added positive/negative fixtures and documentation with examples, grammar
+  rules and a generated IR excerpt.
+
+What is present in the repository: typed pipelines with examples such as
+5 |> twice |> addTen, with no implicit type conversion between stages.
+
+STUDENT RESPONSE — What I accepted as-is, what I changed myself
+(or explicitly requested to be changed), and why:
+
+
+
+
+
+3.2 Task 2: Checked-AST optimizer
+
+Files affected: optimizer.py (new), compiler.py, ast_nodes.py,
+semantic.py, codegen.py, ast_printer.py, tests/optimizer/,
+tests/optimizer_errors/, run_tests.py, README.md.
+
+AI contribution:
+- Added --optimize in any command-line position, with --ast printing the
+  optimized tree, while preserving ordinary non-optimized compilation.
+- Implemented iterative unused-variable removal, using symbol identity to
+  respect nested scopes and shadowing. Observable side effects and runtime
+  failures are retained as expressions where required.
+- Implemented unused-function removal by tracing calls from executed code,
+  including transitive removal of otherwise unreachable functions.
+- Implemented conservative inlining for single-use, nonrecursive global
+  functions with straight-line bodies and a final return, including local
+  parameter bindings and fresh names to prevent caller collisions.
+- Kept unsuitable inlining cases (recursion, methods, branches, relevant
+  global effects) as normal function calls, and rechecked modified ASTs.
+- Added 13 optimizer fixtures, expected optimized ASTs and runtime output,
+  before/after LLVM excerpts, and optimizer side-effect/error checks.
+
+STUDENT RESPONSE — What I accepted as-is, changed, checked,
+or deliberately left unoptimized, and why:
+I described my idea for implementing three AST optimizations: Unused Variables, Unused Functions, and Function Inlining. I specifically emphasized that the optimizations should not change the behavior of programs, should correctly handle scopes and variables with the same names, and should not inline recursive functions. 
+I also checked that the programs behaved the same way with and without `--optimize`.
+
+
+
+
+3.3 Task 3: Space Battle: Last Stand
+
+Files affected: programs/space_battle.txt,
+programs/space_battle_*.in, programs/space_battle_*.expected,
+run_tests.py and README.md.
+
+AI contribution:
+- Created a playable native Caelum program using astro Ship and takeHit,
+  global spark functions, read/print built-ins, and Piping in the main Fire
+  damage path.
+- Implemented the initial three-round game and later the five-round Last
+  Stand rework requested by the student.
+- Implemented player HP, energy, reactor heat, enemy HP/shield/laser,
+  Fire/Defend/EMP, defensive and aggressive enemy reactions, final strike,
+  victory and defeat conditions, and fixed-width ASCII display.
+- Generated recorded .in/.expected sessions, including victories, defeats,
+  EMP, overheating, invalid actions and insufficient energy.
+- Added a deterministic all-3^5-action-path test and checked that normal and
+  optimized native programs print identical output for each path.
+
+Student-directed or visible hands-on changes:
+- The student rejected the first version as too simple and directed the
+  redesign to a more tactical five-round game.
+- During earlier game testing, the student manually adjusted the ASCII
+  display alignment in the program and regenerated expected outputs.
+- The student ran the native executable and compared optimized/unoptimized
+  output from WSL, then reported the results in chat.
+
+STUDENT RESPONSE — Which game changes I personally made, which
+AI-proposed changes I approved or rejected, and why:
+At first I had an idea to make a simple Space Battle game with three rounds and two actions, but then I realized that it was too predictable. So I suggested increasing the number of rounds to five and adding energy, reactor overheating, EMP attacks, and different enemy behaviors depending on the player's actions. I also decided not to add randomness to make the game easier to test. After the implementation, 
+I tested different strategies, noticed an issue with the alignment of the ships in the console, and fixed it.
+
+
+
+
+3.4 Tests, quality assurance and compiler error-handling patch
+
+Files affected: compiler.py, run_tests.py and the Stage 3 test fixtures.
+
+AI contribution:
+- Extended the test runner for Piping, optimizer ASTs, existing tests with
+  --optimize, native game sessions and an exhaustive action-path sweep.
+- Audited the work against the supplied PDF and investigated edge cases.
+- Fixed compiler.py so invalid output paths produce single-line diagnostics
+  rather than Python tracebacks; stale output is removed after failure;
+  successful results are written atomically; input and output paths cannot
+  point to the same file; and malformed CLI arguments are handled.
+- Added a regression test for compiler I/O/CLI errors in both modes.
+- Verified 319/319 tests in the produced critical-fixes repository archive.
+
+Known boundary: very long numeric input in lookThroughTelescope() has an
+older token-buffer limitation; that was not fixed by the critical patch.
+
+STUDENT RESPONSE — What I tested or corrected myself, what I
+accepted from the AI-generated QA patch, and why:
+
+I ran the tests, checked the game in WSL, and compared how it worked with and without optimization. Then I used AI as a tester to check the project. After the review, I decided to fix the critical issues with the compiler's error handling.
+ I accepted the suggested fixes after testing everything again.
+
+
+
+3.5 Documentation and repository workflow
+
+Files affected: README.md, grammar.ebnf, and Git metadata/branch history.
+
+AI contribution:
+- Wrote/revised the README rules, examples, optimization explanations,
+  generated LLVM excerpts, native build commands, tactical game rules,
+  test summary and submission notes.
+- Updated grammar.ebnf with the Piping syntax.
+- Supplied WSL commands for unzipping a full Git repository, compiling via
+  llc/clang, checking native parity, fetching GitHub branches, inspecting
+  commits and changing local Git author metadata.
+
+Student-side actions visible in the conversation:
+- The student installed the updated archive in WSL and ran the native game.
+- The student verified their stage3 branch and clean working tree.
+- The student requested author-name changes and followed Git instructions;
+  the final rewritten Git history must be verified locally before submission.
+- The student requested a revised README and instructions to copy it into
+  the repository. The final installed README version and edits must be checked
+  and described accurately by the student.
+
+The assistant did NOT directly perform a GitHub PR approval, Moodle
+submission or reviewer request in this conversation. These actions must be
+performed and disclosed accurately by the student if completed.
+
+STUDENT RESPONSE — What documentation or Git changes I actually
+made myself, what I kept from AI, and why:
+
+I used ChatGPT to prepare the README, but I updated it to match the final version of Space Battle and the Stage 3 requirements.
+I also worked on the structure of the documentation to make sure it covered all the main parts of the project.
+
+
+
+4. HOW THE I UNDERSTAND THE CODE
+--------------------------------------------------------
+4.1 Piping: explain how x |> f |> g is parsed, how its types are checked,
+    and what LLVM calls implement it.
+
+
+Piping allows the result of one function to be passed to the next. The parser stores the sequence of functions in the AST. Then the compiler checks whether their types match and generates the function calls.
+
+
+4.2 Unused-variable and unused-function elimination: explain how the
+    optimizer detects unused declarations without deleting real side
+    effects or confusing shadowed names.
+
+The optimizer checks whether variables and functions are used. If a variable is not needed anywhere, it can be removed. It also takes scopes into account because variables can have the same names. Unused functions should also be removed.
+
+
+
+
+4.3 Inlining: explain which one-use functions can be inlined, why local
+    names are renamed, and why recursion/conditional returns are excluded.
+
+Inlining replaces a function call with the function's code. This is done for simple functions that are called only once. Local variables are renamed to avoid name conflicts.
+
+
+
+4.4 The interactive program: explain how Fire, Defend and EMP interact
+    with energy, heat, shields and enemy actions; identify a specific
+    expression in space_battle.txt where Piping is essential.
+
+In the game, Fire uses 2 energy, deals damage to the enemy, and heats up the reactor. Defend protects the ship, restores energy, and reduces heat. EMP uses 3 energy, disables the enemy's shield, and makes the next attack stronger. The enemy can activate a shield, charge a laser, or attack more aggressively. Piping is used to calculate attack damage.
+
+
+
+4.5 Testing and LLVM: explain what the .in/.expected sessions prove, why
+    normal vs --optimize outputs must agree, and why llc/clang native
+    execution matters beyond simply printing an AST or LLVM IR.
+
+The `.in` files contain the player's actions, and the `.expected` files contain the expected game output. This helps check whether the program works correctly. I also compared the results with and without optimization because optimization should not change the program's behavior. With `llc` and `clang`, the game is compiled and run to check that the generated LLVM IR actually works.
+
+
+
+5. PROMPTS AND PUBLIC CHAT TRANSCRIPT
+-------------------------------------
+PRIMARY USER-PROVIDED SHARED CHAT URL:
+https://chatgpt.com/share/6aeca533-4694-83ed-9b7e-39fb2f0f5b61
+
+5.1 Task 2 — optimizer (original prompt)
+
+Продовжуємо Stage 3 у вже створеній гілці stage3. Тепер реалізуємо Task 2 — оптимізатор AST відповідно до всіх вимог PDF. Перед початком перевір  стан коду те, що Piping і тести попередніх етапів працюють коректно. Не змінюй уже реалізовану функціональність без необхідності.
+Треба додати підтримку --optimize, який може бути в будь-якій позиції командного рядка. Оптимізація повинна виконуватися після семантичної перевірки AST, але до генерації LLVM IR. При використанні --optimize разом із --ast компілятор повинен виводити оптимізоване дерево.
+
+Реалізуй три обов'язкові трансформації: Unused Variables, Unused Functions та Function Inlining. Для невикористаних змінних треба повторні проходи до стабільного стану, правильну роботу областей видимості, shadowing та збереження побічних ефектів. Для невикористаних функцій реалізуй повторне видалення функцій, які більше ніде не викликаються. Для inlining реалізуй вбудовування функцій, що викликаються рівно один раз, із правильним передаванням аргументів, перейменуванням локальних змінних, обробкою повернення значення та захистом від конфліктів імен. Рекурсивні функції не вбудовуй.
+
+За потреби створи окремий optimizer.py, зберігаючи чистоту наявної архітектури. Усі трансформації повинні працювати на AST, не змінювати поведінку програми та не порушувати генерацію LLVM IR через builder.Додай мінімум шість тестових програм, по дві для кожної оптимізації, з очікуваним оптимізованим AST та очікуваним виведенням. Перевір однакову поведінку програм з --optimize і без нього. Усі тести Stage 1, Stage 2 та Task 1 також повинні проходити з прапорцем --optimize.Онови README: опиши алгоритми, підтримувані й непідтримувані випадки inlining та додай приклад LLVM IR до і після оптимізації.
+
+Можеш створювати локальні коміти відповідно до стилю репозиторію. Нічого не пушити, не створювати Pull Request, не змінювати файли AI usage. Результат: ZIP-архів повного оновленого репозиторію разом із .git. Наприкінці опиши реалізовані оптимізації, їхні обмеження, коміти, результати тестів та виявлені проблеми.
+
+5.2 Task 3 — first minimal game (original prompt)
+
+Продовжуємо роботу в гілці stage3.  починаємо створення мінімальної консольної гри Caelum Space Battle.
+Реалізуй просту космічну битву між кораблем гравця і противником. ВСе відбувається з консолі. Зроби невелике текстове поле, яке показує обидва кораблі і їхнє хп. Гравець має лише дві дії: атакувати або захищатися. вистачить 2-3 раундів із можливістю перемоги або поразки. Не додавай складніший інтерфейс, додаткові механіки чи можливості мови, яких компілятор не підтримує.
+Гра повинна використовувати структуру astro з методом, мінімум одну функцію spark, введення через lookThroughTelescope(), виведення через recordCoordinates() Piping у логіці обчислення шкоди. Використовуй наявну архітектуру й синтаксис Caelum, не змінюючи компілятор без потреби.
+Створи гру в programs/space_battle.txt. Перевір, що вона компілюється та коректно працює. На цьому етапі не треба створювати додаткові тести або змінювати README
+Можеш створювати логічні локальні коміти. Нічого не пушити, не створювати пул реквест і не змінювати ai usage.
+Результат: ZIP-архів повного репозиторію і короткий опис реалізованої гри та результатів перевірки.
+
+5.3 Task 3 — recorded sessions and invalid choices (original user prompt)
+
+Треба додати два автоматизовані сценарії Space Battle: перемогу та поразку, з файлами .in і .expected. Інтегруй їх у run_tests.py та перевір роботу гри з --optimize і без нього. Додай перевірку неправильного вибору гравця, не ускладнюючи механіку гри. Після змін запусти всі тести й перевір, що попередня функціональність не порушена.
+
+README поки не змінюй, не додавай команди llc і clang . Не змінюй AI usage, нічого не пушити й не створювати Pull Request. Можеш робити логічні локальні коміти.
+Результат: ZIP-архів повного репозиторію разом із .git та короткий звіт про зміни й результати тестування.
+
+5.4 Game display (original prompt)
+
+Ігрове поле відображається некоректно. Ворог також з'їжджає.
+
+5.5 Task 3 — tactical Last Stand redesign (original prompt)
+
+Надсилаю актуальний ZIP-архів Caelum Compiler. Продовжуємо роботу над Stage 3 у гілці stage3. Наша гра надто примітивна, тому спробуй її покращити. Треба зробити невелику тактичну гру Space Battle але без складної графіки і нових можливостей.
+
+Залишаємо маленьке текстове поле з двома кораблями. Гра триватиме максимум 5 раундів. У гравця будуть HP, енергія та температура реактора. У противника — HP, щит і можливість заряджати потужний лазер. Гравець матиме три дії: Fire, Defend/Recharge та EMP Attack. Звичайна атака витрачає енергію, завдає шкоди й нагріває реактор. Захист зменшує отриману шкоду, відновлює енергію та охолоджує реактор. EMP витрачає більше енергії, але тимчасово вимикає щит противника, дозволяючи наступній атаці завдати більше шкоди. Якщо реактор перегрівається, гравець отримує негативні наслідки. Усі правила зроби простими та зрозумілими.
+
+Противник повинен реагувати на дії гравця. Наприклад, після кількох атак він може активувати щит, після частого захисту  зарядити сильний лазер, а після EMP  перейти до агресивнішої поведінки. На останньому раунді має бути особливо небезпечна атака від ворога. Поведінка ворога повинна залежати від стану гри й попередніх дій, а не бути однаковою кожного раунду. Справжню випадковість додавати не будемо. Усі сценарії мають бути доступні для нормального тестування
+Перед реалізацією продумай баланс характеристик, шкоди та енергії. Гравець повинен мати кілька реальних способів перемогти, але неправильні рішення мають вести до поразки. Постійно натискати тільки Fire не має бути найкращою стратегією. Передбач різні завершення: звичайна перемога, перемога з малим HP, поразка від ворога, перегрів реактора або завершення п'яти раундів.Використовуй тільки наявні можливості Caelum: astro з методами, spark, when/otherwise, введення, виведення та Piping. Piping обов'язково залиш у центральній логіці обчислення шкоди. Не додавай цикли, генератор випадкових чисел або нові можливості компілятора. Якщо для п'яти раундів потрібне повторення коду, організуй його максимально акуратно за допомогою наявних функцій. Не змінюй архітектуру компілятора без необхідності.Збережи простий консольний інтерфейс. Поле повинно бути рівним, усі повідомлення короткими і інформативними, а характеристики кораблів мають показуватися після кожного раунду. валідуй неправильний вибір дії та недостатню кількість енергії. Не ускладнюй гру додатковими меню чи непотрібними механіками.
+
+Онови programs/space_battle.txt і тестові сценарії. Додай перевірки різних стратегій, перемоги, поразки, EMP, захисту, перегріву та неправильного введення. Інтегруй їх у run_tests.py. Перевір, що результати однакові з --optimize і без нього, а всі попередні тести Stage 1–3 продовжують проходити. Також перевір нативну компіляцію через llc і clang. У нашому WSL для цього використовувалися параметри -mtriple=x86_64-pc-linux-gnu та -no-pie.
+
+README можеш змінити. Працюй у наявній гілці stage3, збережи гіт-історію і можеш створювати логічні локальні коміти. Нічого не пушити, не створювати Pull Request і не виконувати merge.
+Результат: ZIP-архів повного оновленого репозиторію разом із .git. Далі в кінці коротко опиши нові правила гри, баланс, можливі результати, створені коміти та результати тестування. Особливо перевір, що в гру справді можна виграти кількома різними стратегіями, а не однією комбінацією дій.
+
+
+
+
+6. MY UNDERSTANDING 
+-------------------------------------------------
+
+I chose Piping because I wanted to add a new feature while keeping as much of the syntax and functionality of the language from the previous stages as possible. Piping allows the result of one function to be passed to the next using `|>`. This means there is no need to nest function calls. In Space Battle, it is used to calculate attack damage depending on different conditions.
+
+The optimizer includes three main transformations. Unused Variables removes variables that are never used, Unused Functions removes unnecessary functions, and Function Inlining replaces a function call with its code if the function is called only once and is suitable for this optimization.
+
+Space Battle has a maximum of five rounds and three actions. Fire uses 2 energy and increases reactor heat by 3. Defend restores energy, cools down the reactor, and reduces incoming damage. EMP uses 3 energy, disables the enemy's shield, and makes the next attack stronger. The enemy reacts to the player's previous actions: it can activate a shield after several attacks or charge a stronger laser after repeated defending.
+
+The test scenarios covered wins, losses, invalid actions, insufficient energy, and reactor overheating. I also ran the tests and compared the results.
+
+
+
+

@@ -1,0 +1,10 @@
+spark never(☼ x) -> ☼ ⟨
+    rise x + 1.
+⟩
+spark orphan(☼ x) -> ☼ ⟨
+    rise never(x).
+⟩
+spark live(☼ y) -> ☼ ⟨
+    rise y * 2.
+⟩
+recordCoordinates(live(7)).

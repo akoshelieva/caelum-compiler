@@ -1,0 +1,16 @@
+astro Pair ⟨
+    calm ☼ left.
+    calm ☼ right.
+    spark sum() -> ☼ ⟨
+        rise left + right.
+    ⟩
+⟩
+spark increment(☼ x) -> ☼ ⟨
+    rise x + 1.
+⟩
+spark double(☼ x) -> ☼ ⟨
+    rise x * 2.
+⟩
+flow Pair pair = Pair⟨left = 2 |> increment, right = 3⟩.
+recordCoordinates(pair ~ sum() |> double).
+recordCoordinates((1 |> increment) + (2 |> double)).

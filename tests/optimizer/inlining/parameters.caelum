@@ -1,0 +1,8 @@
+spark calculate(flow ☼ count, ☼ increment) -> ☼ ⟨
+    flow ☼ temp = count + increment.
+    count = temp + 1.
+    rise count.
+⟩
+flow ☼ count = 10.
+flow ☼ temp = 99.
+recordCoordinates(calculate(count, temp), count, temp).

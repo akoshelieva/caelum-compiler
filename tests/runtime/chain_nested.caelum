@@ -1,0 +1,5 @@
+astro Point ⟨ flow ☼ x. flow ☼ y. ⟩
+astro Circle ⟨ flow Point center. calm ☼ radius. ⟩
+flow Circle c = Circle⟨radius = 3, center = Point⟨x = 1, y = 2⟩⟩.
+c ~ center ~ x = 9.
+recordCoordinates(c).

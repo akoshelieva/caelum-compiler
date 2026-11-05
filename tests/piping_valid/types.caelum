@@ -1,0 +1,7 @@
+spark widen(☽ n) -> ☽ ⟨
+    rise n + 1.
+⟩
+spark positive(☽ n) -> ☁ ⟨
+    rise n != 0.
+⟩
+recordCoordinates(9000000000 |> widen |> positive).

@@ -1,0 +1,8 @@
+flow ☼ counter = 0.
+spark tick() -> ☼ ⟨
+    counter = counter + 1.
+    rise counter.
+⟩
+flow ☼ discarded = tick().
+discarded = tick().
+recordCoordinates(counter).

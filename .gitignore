@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+*.ll
+*.o
+*.exe
+.pytest_cache/
+.DS_Store

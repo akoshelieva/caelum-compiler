@@ -1,0 +1,145 @@
+CAELUM SPACE BATTLE
+Destroy the enemy within five rounds.
+1 FIRE (-2 energy, +3 heat)
+2 DEFEND (+4 energy, -4 heat)
+3 EMP (-3 energy, next Fire +3)
+Heat 8 = meltdown. Final strike: +5.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+14
+ENERGY:
+7
+REACTOR HEAT:
+0
+ENEMY HP:
+14
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 1
+Your action (1/2/3):
+FIRE: Damage:
+5
+ENEMY: Return fire.
+DAMAGE TAKEN:
+2
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+12
+ENERGY:
+5
+REACTOR HEAT:
+3
+ENEMY HP:
+9
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 2
+Your action (1/2/3):
+FIRE: Damage:
+5
+ENEMY: Shield activated.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+2
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+10
+ENERGY:
+3
+REACTOR HEAT:
+6
+ENEMY HP:
+4
+ENEMY SHIELD (0/1):
+1
+ENEMY LASER (0/1):
+0
+ROUND 3
+Your action (1/2/3):
+DEFEND: Energy +4, heat -4.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+0
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+10
+ENERGY:
+7
+REACTOR HEAT:
+2
+ENEMY HP:
+4
+ENEMY SHIELD (0/1):
+1
+ENEMY LASER (0/1):
+0
+ROUND 4
+Your action (1/2/3):
+FIRE: Damage:
+2
+ENEMY: Return fire.
+DAMAGE TAKEN:
+2
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+8
+ENERGY:
+5
+REACTOR HEAT:
+5
+ENEMY HP:
+2
+ENEMY SHIELD (0/1):
+1
+ENEMY LASER (0/1):
+0
+ROUND 5
+Your action (1/2/3):
+EMP: Shield disabled, next Fire +3.
+ENEMY: Aggressive response.
+ENEMY: Final strike!
+DAMAGE TAKEN:
+9
+DEFEAT: Ship destroyed.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+0
+ENERGY:
+2
+REACTOR HEAT:
+6
+ENEMY HP:
+1
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+GAME OVER

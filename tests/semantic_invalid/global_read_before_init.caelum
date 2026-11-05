@@ -1,0 +1,2 @@
+flow ☼ x = f().
+spark f() -> ☼ ⟨ rise x. ⟩

@@ -1,0 +1,7 @@
+spark boolean(☼ x) -> ☁ ⟨
+    rise x != 0.
+⟩
+spark double(☼ x) -> ☼ ⟨
+    rise x * 2.
+⟩
+recordCoordinates(3 |> boolean |> double).

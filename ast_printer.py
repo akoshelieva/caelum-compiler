@@ -1,4 +1,6 @@
 """Deterministic text dump for Caelum AST nodes."""
+from dataclasses import fields, is_dataclass
+from ast_nodes import ASTNode
 
 from ast_nodes import (
     ASTNode,
@@ -82,7 +84,24 @@ class ASTPrinter:
             self._line(lines, level + 1, f"name: {node.name}")
             return
 
+        # Generic Stage 2 nodes retain every field, argument, and mutability flag.
+        if is_dataclass(node):
+            self._line(lines,level,self._header(type(node).__name__.removesuffix("Node"),node))
+            for field in fields(node):
+                if field.name in ("line","column"):continue
+                value=getattr(node,field.name)
+                self._line(lines,level+1,field.name+":")
+                self._write_value(value,level+2,lines)
+            return
         raise TypeError(f"unsupported AST node: {type(node).__name__}")
+
+    def _write_value(self,value,level,lines):
+        if isinstance(value,ASTNode):self._write_node(value,level,lines)
+        elif isinstance(value,list):
+            for item in value:self._write_value(item,level,lines)
+        elif isinstance(value,tuple):
+            for item in value:self._write_value(item,level,lines)
+        else:self._line(lines,level,repr(value))
 
     @staticmethod
     def _header(name: str, node: ASTNode) -> str:

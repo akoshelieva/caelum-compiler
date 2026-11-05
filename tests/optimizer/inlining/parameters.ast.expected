@@ -1,0 +1,72 @@
+Program @ 1:1
+  Declaration @ 6:1
+    kind: flow
+    type: ☼
+    name: count
+    initializer:
+      IntegerLiteral @ 6:16
+        value: 10
+  Declaration @ 7:1
+    kind: flow
+    type: ☼
+    name: temp
+    initializer:
+      IntegerLiteral @ 7:15
+        value: 99
+  CallStatement @ 8:1
+    call:
+      Call @ 8:1
+        name:
+          'recordCoordinates'
+        args:
+          InlineExpr @ 8:19
+            statements:
+              Declaration @ 1:17
+                kind: flow
+                type: ☼
+                name: inlineA
+                initializer:
+                  Identifier @ 8:29
+                    name: count
+              Declaration @ 1:31
+                kind: calm
+                type: ☼
+                name: inlineB
+                initializer:
+                  Identifier @ 8:36
+                    name: temp
+              Declaration @ 2:5
+                kind: flow
+                type: ☼
+                name: inlineC
+                initializer:
+                  Binary @ 2:25
+                    operator:
+                      '+'
+                    left:
+                      Identifier @ 2:19
+                        name: inlineA
+                    right:
+                      Identifier @ 2:27
+                        name: inlineB
+              Assignment @ 3:5
+                name: inlineA
+                value:
+                  Binary @ 3:18
+                    operator:
+                      '+'
+                    left:
+                      Identifier @ 3:13
+                        name: inlineC
+                    right:
+                      IntegerLiteral @ 3:20
+                        value: 1
+            result:
+              Identifier @ 4:10
+                name: inlineA
+            result_type:
+              '☼'
+          Identifier @ 8:43
+            name: count
+          Identifier @ 8:50
+            name: temp

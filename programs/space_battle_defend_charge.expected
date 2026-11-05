@@ -1,0 +1,144 @@
+CAELUM SPACE BATTLE
+Destroy the enemy within five rounds.
+1 FIRE (-2 energy, +3 heat)
+2 DEFEND (+4 energy, -4 heat)
+3 EMP (-3 energy, next Fire +3)
+Heat 8 = meltdown. Final strike: +5.
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+14
+ENERGY:
+7
+REACTOR HEAT:
+0
+ENEMY HP:
+14
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 1
+Your action (1/2/3):
+DEFEND: Energy +4, heat -4.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+0
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+14
+ENERGY:
+8
+REACTOR HEAT:
+0
+ENEMY HP:
+14
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 2
+Your action (1/2/3):
+DEFEND: Energy +4, heat -4.
+ENEMY: Charging heavy laser.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+0
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+14
+ENERGY:
+8
+REACTOR HEAT:
+0
+ENEMY HP:
+14
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+1
+ROUND 3
+Your action (1/2/3):
+FIRE: Damage:
+5
+ENEMY: Heavy laser fired!
+ENEMY: Return fire.
+DAMAGE TAKEN:
+6
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+8
+ENERGY:
+6
+REACTOR HEAT:
+3
+ENEMY HP:
+9
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 4
+Your action (1/2/3):
+DEFEND: Energy +4, heat -4.
+ENEMY: Return fire.
+DAMAGE TAKEN:
+0
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+8
+ENERGY:
+8
+REACTOR HEAT:
+0
+ENEMY HP:
+9
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+ROUND 5
+Your action (1/2/3):
+FIRE: Damage:
+5
+ENEMY: Final strike!
+DAMAGE TAKEN:
+7
++---------------------------+
+|   PLAYER        ENEMY     |
+|    [^]           <=>      |
+|    /|\            |       |
++---------------------------+
+PLAYER HP:
+1
+ENERGY:
+6
+REACTOR HEAT:
+3
+ENEMY HP:
+4
+ENEMY SHIELD (0/1):
+0
+ENEMY LASER (0/1):
+0
+DEFEAT: Enemy survived five rounds.
+GAME OVER

@@ -1,0 +1,7 @@
+spark twice(☼ x) -> ☼ ⟨
+    rise x * 2.
+⟩
+spark addTen(☼ x) -> ☼ ⟨
+    rise x + 10.
+⟩
+recordCoordinates(5 |> twice |> addTen).

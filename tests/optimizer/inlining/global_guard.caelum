@@ -1,0 +1,5 @@
+flow ☼ total = 5.
+spark offset(☼ x) -> ☼ ⟨
+    rise total + x.
+⟩
+recordCoordinates(offset(2)).

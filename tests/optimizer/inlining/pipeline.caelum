@@ -1,0 +1,7 @@
+spark add(☼ x) -> ☼ ⟨
+    rise x + 4.
+⟩
+spark twice(☼ x) -> ☼ ⟨
+    rise x * 2.
+⟩
+recordCoordinates(3 |> add |> twice).

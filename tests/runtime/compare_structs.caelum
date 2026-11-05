@@ -1,0 +1,4 @@
+astro Point ⟨ flow ☼ x. flow ☼ y. ⟩
+calm Point a = Point⟨x = 1, y = 2⟩.
+flow Point b = Point⟨y = 2, x = 1⟩.
+recordCoordinates(a == b, a != b).

@@ -1,0 +1,3 @@
+astro A ⟨ flow ☼ x. ⟩
+astro B ⟨ flow ☼ x. ⟩
+flow A a = B⟨x = 1⟩.

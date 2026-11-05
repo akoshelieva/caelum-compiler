@@ -1,0 +1,58 @@
+Program @ 1:1
+  Function @ 1:1
+    name:
+      'recur'
+    parameters:
+      Parameter @ 1:13
+        name:
+          'n'
+        type_name:
+          '☼'
+        mutable:
+          False
+    result_type:
+      '☼'
+    body:
+      If @ 2:5
+        condition:
+          Comparison @ 2:12
+            operator: ==
+            left:
+              Identifier @ 2:10
+                name: n
+            right:
+              IntegerLiteral @ 2:15
+                value: 0
+        then:
+          Return @ 3:9
+            value:
+              IntegerLiteral @ 3:14
+                value: 1
+        else:
+          Return @ 5:9
+            value:
+              Call @ 5:14
+                name:
+                  'recur'
+                args:
+                  Binary @ 5:22
+                    operator:
+                      '-'
+                    left:
+                      Identifier @ 5:20
+                        name: n
+                    right:
+                      IntegerLiteral @ 5:24
+                        value: 1
+  CallStatement @ 8:1
+    call:
+      Call @ 8:1
+        name:
+          'recordCoordinates'
+        args:
+          Call @ 8:19
+            name:
+              'recur'
+            args:
+              IntegerLiteral @ 8:25
+                value: 3

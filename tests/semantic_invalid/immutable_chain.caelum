@@ -1,0 +1,4 @@
+astro Point ⟨ flow ☼ x. ⟩
+astro Galaxy ⟨ calm Point center. ⟩
+flow Galaxy g = Galaxy⟨center = Point⟨x = 1⟩⟩.
+g ~ center ~ x = 3.

@@ -1,0 +1,37 @@
+Program @ 1:1
+  Declaration @ 1:1
+    kind: flow
+    type: ☼
+    name: value
+    initializer:
+      IntegerLiteral @ 1:16
+        value: 2
+  If @ 2:1
+    condition:
+      Comparison @ 2:12
+        operator: ==
+        left:
+          Identifier @ 2:6
+            name: value
+        right:
+          IntegerLiteral @ 2:15
+            value: 2
+    then:
+      CallStatement @ 5:5
+        call:
+          Call @ 5:5
+            name:
+              'recordCoordinates'
+            args:
+              String @ 5:23
+                value:
+                  'yes'
+    else: none
+  CallStatement @ 7:1
+    call:
+      Call @ 7:1
+        name:
+          'recordCoordinates'
+        args:
+          Identifier @ 7:19
+            name: value
