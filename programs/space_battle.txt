@@ -1,0 +1,86 @@
+astro Ship ⟨
+    flow ☼ hp.
+
+    spark takeHit(☼ damage) -> ☼ ⟨
+        hp = hp - damage.
+        rise hp.
+    ⟩
+⟩
+
+spark chargeLaser(☼ power) -> ☼ ⟨
+    rise power * 2.
+⟩
+
+spark raiseShield(☼ damage) -> ☼ ⟨
+    rise damage - 1.
+⟩
+
+flow Ship player = Ship⟨hp = 4⟩.
+flow Ship enemy = Ship⟨hp = 8⟩.
+flow ☁ finished = dark.
+
+spark showField(Ship ally, Ship rival) -> ☼ ⟨
+    recordCoordinates("+---------------------------+").
+    recordCoordinates("|   PLAYER        ENEMY     |").
+    recordCoordinates("|    [^]           <=>     |").
+    recordCoordinates("|    /|\\           |      |").
+    recordCoordinates("+---------------------------+").
+    recordCoordinates("PLAYER HP:").
+    recordCoordinates(ally ~ hp).
+    recordCoordinates("ENEMY HP:").
+    recordCoordinates(rival ~ hp).
+    rise 0.
+⟩
+
+spark playTurn(☼ action) -> ☼ ⟨
+    when action == 1 ⟨
+        recordCoordinates("You fire the laser!").
+        enemy ~ takeHit(2 |> chargeLaser).
+    ⟩ otherwise ⟨
+        recordCoordinates("You activate the shield.").
+    ⟩
+
+    when enemy ~ hp == 0 ⟨
+        finished = light.
+        recordCoordinates("VICTORY: Enemy ship destroyed!").
+    ⟩ otherwise ⟨
+        recordCoordinates("Enemy fires back!").
+        when action == 1 ⟨
+            player ~ takeHit(2).
+        ⟩ otherwise ⟨
+            player ~ takeHit(2 |> raiseShield).
+        ⟩
+        when player ~ hp == 0 ⟨
+            finished = light.
+            recordCoordinates("DEFEAT: Your ship was destroyed.").
+        ⟩
+    ⟩
+    showField(player, enemy).
+    rise 0.
+⟩
+
+recordCoordinates("CAELUM SPACE BATTLE").
+recordCoordinates("Destroy the enemy within three rounds.").
+recordCoordinates("1 = ATTACK, 2 = DEFEND").
+showField(player, enemy).
+
+recordCoordinates("ROUND 1").
+recordCoordinates("Your action (1 or 2):").
+playTurn(lookThroughTelescope()).
+
+when finished == dark ⟨
+    recordCoordinates("ROUND 2").
+    recordCoordinates("Your action (1 or 2):").
+    playTurn(lookThroughTelescope()).
+⟩
+
+when finished == dark ⟨
+    recordCoordinates("ROUND 3").
+    recordCoordinates("Your action (1 or 2):").
+    playTurn(lookThroughTelescope()).
+⟩
+
+when finished == dark ⟨
+    recordCoordinates("DEFEAT: Enemy ship survived three rounds.").
+⟩
+recordCoordinates("GAME OVER").
