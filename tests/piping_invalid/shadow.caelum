@@ -1,0 +1,8 @@
+spark double(☼ x) -> ☼ ⟨
+    rise x + x.
+⟩
+flow ☼ value = 5.
+when light ⟨
+    flow ☼ double = 2.
+    recordCoordinates(value |> double).
+⟩

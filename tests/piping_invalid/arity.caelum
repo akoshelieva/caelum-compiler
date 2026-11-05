@@ -1,0 +1,4 @@
+spark add(☼ x, ☼ y) -> ☼ ⟨
+    rise x + y.
+⟩
+recordCoordinates(1 |> add).

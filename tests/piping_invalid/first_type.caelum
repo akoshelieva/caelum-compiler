@@ -1,0 +1,4 @@
+spark check(☁ condition) -> ☁ ⟨
+    rise condition.
+⟩
+recordCoordinates(3 |> check).

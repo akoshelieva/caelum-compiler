@@ -74,7 +74,9 @@ def main():
             ('semantic-invalid',TESTS/'semantic_invalid',semantic_invalid),
             ('runtime',TESTS/'runtime',compile_run),
             ('runtime-error',TESTS/'runtime_errors',lambda x:compile_run(x,True)),
-            ('stage1-llvm',TESTS/'valid',stage1_codegen)]
+            ('stage1-llvm',TESTS/'valid',stage1_codegen),
+            ('piping-valid',TESTS/'piping_valid',compile_run),
+            ('piping-invalid',TESTS/'piping_invalid',semantic_invalid)]
     total=failed=0
     for name,folder,fn in suites:
         for path in sorted(folder.glob('*.caelum')):
