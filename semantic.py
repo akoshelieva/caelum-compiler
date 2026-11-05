@@ -305,6 +305,15 @@ class Semantic:
             missing=set(struct.fields)-found
             if missing:self.error(n,f"missing field '{sorted(missing)[0]}' in {n.name} constructor")
             n._ty=n.name;return n.name
+        if isinstance(n, InlineExprNode):
+            self.push()
+            for statement in n.statements:
+                self.statement(statement)
+            actual = self.expr(n.result, n.result_type)
+            self.require(n.result_type, actual, n.result)
+            self.pop()
+            n._ty = actual
+            return actual
         if isinstance(n,PipelineNode):
             # Resolve stages before checking the input so an integer literal can
             # adopt the first stage's parameter width (as in ordinary calls).

@@ -165,6 +165,12 @@ class LLVMGenerator:
             for field_name,expr in n.fields:
                 slot=self.field_ptr(obj,n.name,field_name);self.builder.store(self.value(expr),slot)
             return self.builder.load(obj)
+        if isinstance(n, InlineExprNode):
+            self.scopes.append({})
+            self.statements(n.statements, new_scope=False)
+            result = self.value(n.result)
+            self.scopes.pop()
+            return result
         if isinstance(n,PipelineNode):
             result=self.value(n.value)
             for stage in n.stages:

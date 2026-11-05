@@ -145,3 +145,11 @@ class PipeStageNode(ASTNode):
 class PipelineNode(ExpressionNode):
     value: ExpressionNode
     stages: list[PipeStageNode]
+
+
+@dataclass
+class InlineExprNode(ExpressionNode):
+    """Optimizer-only: scoped statements whose final expression is a value."""
+    statements: list[StatementNode]
+    result: ExpressionNode
+    result_type: str
